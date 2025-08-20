@@ -33,27 +33,38 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
 
 ### 8월 11일 ~ 8월22일
 
-  - [키워드 검색한 뉴스요약](lectLanguageModel3/키워드_뉴스요약.ipynb) -키워드 기반 뉴스 요약 실습
-gogamza/kobart-summarization 모델 사용
+- [키워드 검색한 뉴스요약](lectLanguageModel3/키워드_뉴스요약.ipynb) -키워드 기반 뉴스 요약 실습. 
+
+gogamza/kobart-summarization 모델 사용. 
 Chatbot에 키워드 검색하면 관련 뉴스를 crawling 하여 탐색후 뉴스 요약
 ~~~ python
+# 요약 모델
 pipeline( "summarization",model="gogamza/kobart-summarization",
                 tokenizer="gogamza/kobart-summarization",
                 device=0 if torch.cuda.is_available() else -1
             )
 ~~~
 
-  - [뉴스 감성 분석](lectLanguageModel3/뉴스_긍정_부정_GPT2.ipynb) 
+- [뉴스 감성 분석](lectLanguageModel3/뉴스_긍정_부정_GPT2.ipynb)  
 kogpt2 모델을 Classification 모델로도 활용할 수 있다  
 ~~~
 num_labels = 3
-
 model = AutoModelForSequenceClassification.from_pretrained("skt/kogpt2-base-v2", num_labels=num_labels)
 model.cuda()
 ~~~
 
 ### 8월 4일 ~ 8월15일
+- [감성 분석](lectLanguageModel2/Attension_감정분석_어텐션.ipynb) - Graph Attention Layer  
+GraphEmotionNetwork 클래스는 BERT와 그래프 신경망(GNN)을 결합해 감정 분석을 수행하는 모델 
 
+- [기계 번역](lectLanguageModel2/GRU_기계번역.ipynb) - GRU (Gated Recurrent Unit)  
+pyTorch,  encoder & decoder (GRU model base)
+
+- [GRU로 한글 의도 분류 (Intent Classification)](lectLanguageModel2/GRU_의도분류.ipynb) - GRU(Gated Recurrent Unit)  
+tensorflow,  Bidirectional GRU for better context understanding
+
+- [품사 태깅 예제](lectLanguageModel2/NER_품사_태깅.ipynb) - LSTM & bidirectional
+pyTorch, 신경망모델 구축
 
 ## 🛠️ 기술 스택
 - **언어**: Python
