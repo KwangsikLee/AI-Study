@@ -126,7 +126,11 @@ Chatbot에 키워드 검색하면 관련 뉴스를 crawling 하여 탐색후 뉴
     ~~~
 
 - [뉴스 감성 분석](lectLanguageModel3/뉴스_긍정_부정_GPT2.ipynb)  
-kogpt2 모델을 Classification 모델로도 활용할 수 있다  
+**GPT-2 (Generative Pre-trained Transformer 2)**: 자동회귀 기반 생성형 언어모델  
+- 특징: 이전 토큰들을 기반으로 다음 토큰을 순차적으로 예측  
+- 구조: Transformer 디코더만을 사용한 단방향 언어모델  
+- 사전훈련: 대량의 텍스트 데이터로 다음 단어 예측 학습  
+- 활용: 텍스트 생성, 분류, 요약 등 다양한 NLP 태스크  
     ~~~
     num_labels = 3
     model = AutoModelForSequenceClassification.from_pretrained("skt/kogpt2-base-v2", num_labels=num_labels)
@@ -135,7 +139,11 @@ kogpt2 모델을 Classification 모델로도 활용할 수 있다
 
 ### Language Model 8월 4일 ~ 8월15일
 - [감성 분석](lectLanguageModel2/Attension_감정분석_어텐션.ipynb) - Graph Attention Layer  
-GraphEmotionNetwork 클래스는 BERT와 그래프 신경망(GNN)을 결합해 감정 분석을 수행하는 모델 
+**BERT (Bidirectional Encoder Representations from Transformers)**: 양방향 인코더 기반 사전훈련 언어모델  
+    - 특징: 문맥을 양방향으로 이해하여 더 정확한 언어 표현 학습  
+    - 구조: Transformer 인코더 스택으로 구성  
+    - 사전훈련: Masked Language Model + Next Sentence Prediction  
+    - 활용: 감정분석, 질의응답, 개체명인식 등 다양한 NLP 태스크에 fine-tuning 
 
 - [기계 번역](lectLanguageModel2/GRU_기계번역.ipynb) - GRU (Gated Recurrent Unit)  
 pyTorch,  encoder & decoder (GRU model base)
@@ -160,10 +168,90 @@ Okt, mecab 형태소 분석
 
 ### Neural Network Model 
 
+- [MLP 분류](lectDL_NN/아이리스_MLP.ipynb) - 다층퍼셉트론으로 아이리스 분류  
+**MLP (Multi-Layer Perceptron)**: 입력층, 은닉층, 출력층으로 구성된 완전연결 신경망  
+    - 구조: 각 뉴런이 다음 층의 모든 뉴런과 연결  
+    - 활성화함수: ReLU, Sigmoid, Tanh 등 사용  
+    - 용도: 분류, 회귀 등 다양한 지도학습 문제 해결  
+
+- [CNN 이미지 분류](lectDL_NN/CNN_음식_칼로리.ipynb) - CNN으로 음식 칼로리 예측  
+**CNN (Convolutional Neural Network)**: 이미지 처리에 특화된 합성곱 신경망  
+    - 핵심 구성: 합성곱층(Convolution), 풀링층(Pooling), 완전연결층  
+    - 특징: 지역적 특성 추출, 위치 불변성, 매개변수 공유  
+    - 장점: 이미지의 공간적 구조 보존, 특징 자동 추출  
+
+- [RNN/LSTM](lectDL_NN/공기_RNN_LSTM.ipynb) - 시계열 데이터 예측  
+**RNN/LSTM**: 순차 데이터 처리를 위한 순환 신경망  
+    - RNN: 이전 시점의 정보를 현재 계산에 활용하는 순환 구조  
+    - LSTM: 장기 의존성 문제를 해결한 개선된 RNN 구조  
+    - 용도: 자연어처리, 시계열 예측, 음성 인식 등  
+
+- [앙상블 모델](lectDL_NN/심장병_앙상블_비교.ipynb) - 다중 모델 성능 비교  
+여러 딥러닝 모델의 앙상블 기법과 성능 평가
+
 
 ### Machine Learning
 
+- [KNN 분류/회귀](lectMLDL/KNN_온도_예측.ipynb) - K-최근접 이웃 알고리즘  
+**KNN**: 새로운 데이터를 분류할 때 가장 가까운 K개 이웃들의 다수결로 결정하는 알고리즘  
+    - 거리 기반 학습: 유클리드 거리, 맨하탄 거리 등 사용  
+    - 장점: 단순하고 직관적, 복잡한 결정경계 처리 가능  
+    - 단점: 계산 비용 높음, 차원의 저주에 민감  
 
+- [선형회귀](lectMLDL/다항선형회귀.ipynb) - 다항식 회귀 분석  
+**Linear Regression**: 입력 변수와 출력 변수 사이의 선형 관계를 모델링하는 기법  
+    - 목표: 최적의 직선(또는 평면)을 찾아 예측 수행  
+    - 손실함수: MSE(평균제곱오차) 최소화  
+    - 다항식 회귀: 비선형 관계를 다항식으로 확장  
+
+- [결정트리](lectMLDL/DecisionTree.ipynb) - 의사결정트리 분류  
+**Decision Tree**: 데이터를 여러 조건으로 분할하여 트리 구조로 분류/예측하는 알고리즘  
+    - 분할 기준: 지니계수, 엔트로피, 정보이득 활용  
+    - 장점: 해석하기 쉬움, 비선형 관계 처리 가능  
+    - 단점: 과적합 경향, 데이터 변화에 민감  
+
+- [전처리](lectMLDL/LabelEncoder.ipynb) - 데이터 전처리 기법  
+라벨인코딩, 표준화, 정규화 등 데이터 변환
+
+
+### Vision
+
+- [YOLO 객체탐지](lectVision/yolo_1.ipynb) - 실시간 객체 인식  
+**YOLO (You Only Look Once)**: 실시간 객체 탐지를 위한 원-스테이지 딥러닝 모델  
+    - 특징: 이미지를 한 번만 보고 객체의 위치와 클래스를 동시에 예측  
+    - 장점: 빠른 추론 속도, 실시간 처리 가능  
+    - 구조: 입력 이미지를 그리드로 나누어 각 셀에서 바운딩박스와 클래스 확률 예측  
+
+- [교통신호등 인식](lectVision/yolo_6_신호등.ipynb) - 특화 모델 구축  
+YOLO 커스터마이징으로 교통신호등 인식 시스템
+
+- [YOLO 튜토리얼](lectVision/yolo_tutorial.ipynb) - YOLO 기초 학습  
+YOLO 모델 구조와 사용법, 성능 평가
+
+### Crawling
+
+- [네이버 뉴스](lectCrawling/네이버뉴스.ipynb) - 뉴스 데이터 수집  
+BeautifulSoup으로 네이버 뉴스 크롤링, 워드클라우드 생성
+
+- [쇼핑몰 분석](lectCrawling/쇼핑몰_분석.ipynb) - 전자상거래 데이터  
+쇼핑몰 상품 정보 수집 및 시장 분석
+
+- [IT 기사 수집](lectCrawling/네이버_IT_기사.ipynb) - 특정 카테고리 크롤링  
+IT 관련 기사 자동 수집 및 트렌드 분석
+
+### Pytorch
+
+- [PyTorch 기초](lectPytorch/파이토치_타이타닉.ipynb) - 타이타닉 생존 예측  
+PyTorch 기본 문법, 데이터로더, 모델 구축 기초
+
+- [CNN 구현](lectPytorch/파이토치_CNN.ipynb) - 합성곱 신경망 구현  
+PyTorch로 CNN 직접 구현, 이미지 분류 실습
+
+- [시계열 예측](lectPytorch/파이토치_시계열.ipynb) - 시간 시리즈 모델링  
+PyTorch 기반 시계열 데이터 예측 모델 구축
+
+- [텍스트 처리](lectPytorch/파이토치_토큰화.ipynb) - 자연어 전처리  
+토크나이징, 임베딩, 텍스트 데이터 처리 기법
 
 
 ## 🛠️ 기술 스택
