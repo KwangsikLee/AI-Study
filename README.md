@@ -29,6 +29,8 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
 - **RAG_Study/**: RAG(검색증강생성) 연구 ([README.md](./RAG_Study/README.md)) 
 - **Fine Tuning/**: Fine Tuning 연구
 
+### VLM
+- **VLM/**: VLM 연구 ([README.md](./VLM_Study/README.md)) 
 
 
 ## 📝 학습 일지
