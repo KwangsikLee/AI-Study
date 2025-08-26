@@ -48,9 +48,36 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
     Qwen/Qwen2.5-3B-Instruct 모델을 LoRA 기반 fine-tuning  
     fine_tuned model : Adapter layer 저장. 
 
+### [LangChain & RAG](lectLangChain/)
+
+- [RAG & Chat bot ](lectLangChain/09_langchain_chatbot.ipynb)  RAG 기반 챗봇
+
+
+- [Ensemble Retriever](lectLangChain/10_langchain_검색.ipynb)
+ Ensemble Retriever (BM25+FAISS) 
+
+- [LangChain History & Langchain log](lectLangChain/01_langchain_basic.ipynb) -  History, ConsoleCallbackHandler  
+    **ConsoleCallbackHandler** callback.  
+    ~~~ python
+    result = llm_chain.invoke({"who":"이순신 장군"},
+                            config={"callbacks": [ConsoleCallbackHandler()]})
+    ~~~
+
+- [LangChain LCEL](lectLangChain/01_langchain_basic.ipynb) -  LCEL  
+    **LCEL** chaining.  
+    ~~~
+    chain = prompt | llm | output_parser
+    ~~~
+
+- [LangChain](lectLangChain/03_langchain_2.ipynb) -  LangChain, Embedding, VectorDB   
+    vector db: Chroma.  
+    embedding : OpenAIEmbeddings. 
+    splitter : CharacterTextSplitter. 
+
+- [Chunking](lectLangChain/05_langchain_chunking.ipynb) - SemanticChunker...  
+
 
 ### OpenAI ChatGPT 활용 
-
 
 - [OpenAI Function](lectOpenAI/06_함수.ipynb) - Tool Calling(Function Calling)    
     OpenAI의 Tool Calling : 외부 함수나 API, DB 등을 자동으로 호출할 수 있도록 해주는 기능   

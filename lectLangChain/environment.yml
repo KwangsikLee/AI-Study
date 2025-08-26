@@ -1,0 +1,13 @@
+name: langchain
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - langchain
+      - openai
+      - faiss-cpu
+      - pandas
+      - numpy
+      - jupyter

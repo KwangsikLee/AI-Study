@@ -1,5 +1,6 @@
 # Ignore .env file containing sensitive keys
 .env
+.claude/
 
 CLAUDE.md
 
