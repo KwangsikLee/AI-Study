@@ -51,10 +51,38 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
 ### [LangChain & RAG](lectLangChain/)
 
 - [RAG & Chat bot ](lectLangChain/09_langchain_chatbot.ipynb)  RAG 기반 챗봇
+    아래 내용들이 종합적으로 적용된 코드.  
+    사용자 정의 re-rank Retriver 생성 (CrossEncoderRetriever)
+    ~~~ python
+    class CrossEncoderRetriever(BaseRetriever):
+    ~~~
+
+- [RAG & Chat bot2 ](lectLangChain/17_gpt5_리랭커추가.ipynb)  FlagReranker 
+    아래 내용들이 종합적으로 적용된 코드.  
+    FlagReranker
+    ~~~ python
+    from FlagEmbedding import FlagReranker
+    ~~~    
+
+- [LongContext Reorder ](lectLangChain/11_LongContextReorder.ipynb) Retriever의 결과를 재배치   
+    긴 context의 경우 중간 부분의 context는 LLM에서 무시되는 경향(Lost in the Middle 문제).   
+    중요한 것의 위치를 재조정
+
+- [Parent Document Retriever](lectLangChain/12_Parent_Document_Retriever.ipynb) 이중 분할 구조로 검색 정확도와 컨텍스트 풍부함을 동시 확보    
+    질문 → vectorstore(자식 검색) → 관련 부모 doc_id 찾기 → docstore에서 부모 청크 꺼내 반환
+
+- [MultiVector Retriever](lectLangChain/13_MultiVectorRetriever.ipynb) Parent Document Retriever 의 확장    
+    **MultiVectorRetriever**
+
+- [Retriever + Re-ranker](lectLangChain/16_Cross_Encoder_Reranker.ipynb) Retriever + Re-ranker    
+    vector search: top_k initial = 50 → re-rank to top_n = 3–7
 
 
-- [Ensemble Retriever](lectLangChain/10_langchain_검색.ipynb)
- Ensemble Retriever (BM25+FAISS) 
+- [Ensemble Retriever](lectLangChain/10_langchain_검색.ipynb)  
+    Ensemble Retriever (BM25+FAISS)   
+    BM25Retriever   
+    BM25 (Best Matching 25) - 키워드 기반 검색 
+    * 참고 : [with 한글형태소분석](lectLangChain/15_BM25Retriever_한글_형태소.ipynb)
 
 - [LangChain History & Langchain log](lectLangChain/01_langchain_basic.ipynb) -  History, ConsoleCallbackHandler  
     **ConsoleCallbackHandler** callback.  
