@@ -48,6 +48,37 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
     Qwen/Qwen2.5-3B-Instruct 모델을 LoRA 기반 fine-tuning  
     fine_tuned model : Adapter layer 저장. 
 
+### [LangSmith & RAG](lectLangSmith/)
+- [RAG 뉴스프로젝트 & LangSmith ](lectLangSmith/06_RAG_뉴스프로젝트.ipynb)  RAG 기반 챗봇
+    ####  키워드 검색 시스템
+    **6단계 다층 검색 전략으로 검색 성능 향상!**
+    1. **BM25 원본 검색**: 입력한 키워드 그대로 검색
+    2. **형태소 분석 검색**: 한국어 형태소 분석 후 핵심 키워드 추출하여 검색
+    3. **개별 키워드 검색**: 추출된 각 키워드로 개별 검색
+    4. **메타데이터 키워드 매칭**: 문서에 미리 추출된 키워드와 매칭
+    5. **제목 우선 검색**: 뉴스 제목에서 키워드 매칭 (높은 점수)
+    6. **콘텐츠 부분 매칭**: 본문 내 키워드 빈도 기반 검색
+
+    ####  다중 임베딩 모델 지원
+    - **ko-sroberta-multitask**: 한국어 특화 SentenceTransformer (300MB) ⭐ 추천
+    - **paraphrase-multilingual**: 다국어 경량 모델 (420MB)
+    - **distiluse-multilingual**: 다국어 고속 처리 (540MB)
+    - **ko-electra**: 한국어 경량 모델 (50MB)
+    - **xlm-r-100langs**: 100개 언어 지원 (1.1GB)
+
+    ####  Reranker 기술 적용
+    - **cross-encoder-ms-marco**: MS MARCO 경량 CrossEncoder (80MB) ⭐ 기본
+    - **cross-encoder-multilingual**: 다국어 지원 (400MB) ⭐ 추천
+    - **bge-reranker**: BGE Reranker (400MB)
+    - **none**: Reranking 비활성화
+
+    ####  4가지 고급 검색 방법
+    - **Hybrid**: BM25 + 벡터 검색 앙상블 (균형잡힌 성능)
+    - **Similarity**: 의미 기반 벡터 검색 (문맥 이해)
+    - **Keyword**: 6단계 다층 키워드 검색 ⭐
+    - **Fusion**: 다중 방법 융합 (최고 성능, 느림)
+
+
 ### [LangChain & RAG](lectLangChain/)
 
 - [RAG & Chat bot ](lectLangChain/09_langchain_chatbot.ipynb)  RAG 기반 챗봇
