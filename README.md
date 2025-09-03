@@ -48,7 +48,20 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
     Qwen/Qwen2.5-3B-Instruct 모델을 LoRA 기반 fine-tuning  
     fine_tuned model : Adapter layer 저장. 
 
+### [LangChain & Agent](lectLangSmith/)
+- [newstool](lectLangSmith/11_langChain_Tool_1.ipynb) 
+- [PythonREPLTool 파이썬 코드 실행툴](lectLangSmith/12_langChain_Tool_2.ipynb) 
+- [with DALL-E API 이미지 생성](lectLangSmith/13_langChain_Tool_3.ipynb) 
+
 ### [LangSmith & RAG](lectLangSmith/)
+- [RAG 평가 시스템 sample ](lectLangSmith/09_ev_ex4.ipynb) 
+    LLM-as-Judge 평가 시스템 구축:   
+    Chain of Thought 평가, 
+    Pairwise Comparison, 
+    Multi-aspect 평가 등
+    3가지 고도화된 평가 방법론을 통해 LLM 답변 품질을 다각도로 측정하는 커스텀 평가자 시스템 개발
+
+
 - [RAG 뉴스프로젝트 & LangSmith ](lectLangSmith/06_RAG_뉴스프로젝트.ipynb)  RAG 기반 챗봇
     ####  키워드 검색 시스템
     **6단계 다층 검색 전략으로 검색 성능 향상!**

@@ -1,6 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# faiss
+*.faiss
+*.pkl
+
 # Ignore .env file containing sensitive keys
 .env
 .claude/
+
+# Log
+hs_err*.log
+
 
 CLAUDE.md
 
