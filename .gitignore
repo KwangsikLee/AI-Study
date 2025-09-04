@@ -10,7 +10,7 @@ __pycache__/
 # Ignore .env file containing sensitive keys
 .env
 .claude/
-
+.gradio/
 # Log
 hs_err*.log
 
@@ -22,3 +22,4 @@ PDF/
 
 # team project
 team_sub_project/
+myTermPro/
