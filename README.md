@@ -48,10 +48,14 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
     Qwen/Qwen2.5-3B-Instruct 모델을 LoRA 기반 fine-tuning  
     fine_tuned model : Adapter layer 저장. 
 
+### [LangGraph](lectLangGraph/)
+
+
 ### [LangChain & Agent](lectLangSmith/)
 - [newstool](lectLangSmith/11_langChain_Tool_1.ipynb) 
 - [PythonREPLTool 파이썬 코드 실행툴](lectLangSmith/12_langChain_Tool_2.ipynb) 
 - [with DALL-E API 이미지 생성](lectLangSmith/13_langChain_Tool_3.ipynb) 
+- [데이터 분석 Agent](lectLangSmith/18_데이터_분석_Agent.ipynb) 
 
 ### [LangSmith & RAG](lectLangSmith/)
 - [RAG 평가 시스템 sample ](lectLangSmith/09_ev_ex4.ipynb) 
