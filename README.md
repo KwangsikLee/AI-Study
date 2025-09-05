@@ -50,6 +50,15 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
 
 ### [LangGraph](lectLangGraph/)
 
+- [Plan & Excute Agent](lectLangSmith/08_LangGraph_Plan_and_Execute.ipynb) 
+- **도구 정의**: 사용할 도구 정의
+- **실행 에이전트 정의**: 실제 작업을 실행하는 에이전트 생성
+- **상태 정의**: 에이전트의 상태 정의
+- **계획 단계**: 장기 계획을 세우는 단계 생성
+- **재계획 단계**: 작업 진행 상황에 따라 계획을 재수정하는 단계 생성
+- **그래프 생성 및 실행**: 이러한 단계들을 연결하는 그래프 생성 및 실행
+react agent : 독립실행 가능. langGraph에서 sub grpah의 형태로 구성가능하다
+
 
 ### [LangChain & Agent](lectLangSmith/)
 - [newstool](lectLangSmith/11_langChain_Tool_1.ipynb) 
