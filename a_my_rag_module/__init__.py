@@ -17,6 +17,8 @@ from .splitter import KoreanTextSplitter
 from .embedding import MultiEmbeddingManager, VectorStoreManager
 from .retriever import MyReranker, AdvancedHybridRetriever
 from .pdf_loader import PDFProcessor
+from .ocr_korean import KoreanOCR
+from .pdf_image import PDFImageExtractor
 
 
 __all__ = [
@@ -25,5 +27,7 @@ __all__ = [
     'MultiEmbeddingManager',
     'VectorStoreManager', 
     'MyReranker',
-    'AdvancedHybridRetriever'
+    'AdvancedHybridRetriever',
+    'KoreanOCR',
+    'PDFImageExtractor'
 ]

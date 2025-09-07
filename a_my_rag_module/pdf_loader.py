@@ -14,6 +14,30 @@ class PDFProcessor:
 
     def __init__(self):
         self.documents = []
+    def extract_text_pdfLoader(self, pdf_path: str) -> List[Document]:
+        """pdfplumber를 사용한 텍스트 추출"""
+        pages = []
+        try:
+            from langchain_community.document_loaders import PyPDFLoader            
+
+            loader = PyPDFLoader(pdf_path)
+            docs = loader.load()
+            total_pages = len(docs)
+            for page_num in range(total_pages):
+                text = docs[page_num]
+                page = Document(
+                    page_content=text.page_content,
+                    metadata={
+                        "source": pdf_path,
+                        "page_num": page_num + 1,
+                        "total_pages": total_pages + 1
+                    }
+                )
+                pages.append(page)
+        except Exception as e:
+            print(f"pdfplumber 오류: {e}")
+        return pages
+    
 
     def extract_text_pypdf2(self, pdf_path: str) -> List[Document]:
         """PyPDF2를 사용한 텍스트 추출"""
@@ -45,7 +69,9 @@ class PDFProcessor:
         try:
             pdf_document = fitz.open(pdf_path)
             for page_num in range(pdf_document.page_count):
-                text = pdf_document[page_num]
+                text = pdf_document.load_page(page_num)
+                # text = pdf_document[page_num]
+                # print(f"nupdf page({page_num}): {text.get_text()} ")
                 page = Document(
                         page_content=text.get_text(),
                         metadata={
@@ -64,6 +90,7 @@ class PDFProcessor:
         """PDF를 처리하여 Document 객체 리스트로 변환"""
         if method == 'pymupdf':
             documents = self.extract_text_pymupdf(pdf_path)
+            # documents = self.extract_text_pdfLoader(pdf_path=pdf_path)
         else:
             documents = self.extract_text_pypdf2(pdf_path)
 

@@ -13,14 +13,22 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 
+from sentence_transformers import SentenceTransformer
+
 # =============================================================================
 # 다중 임베딩 및 벡터 DB 관리 클래스 (임베딩 & 벡터 DB화)
 # =============================================================================
 
 class MultiEmbeddingManager:
-    def __init__(self):
+    def __init__(self, api_token):
         # 사용 가능한 임베딩 모델들
         self.embedding_models = {
+            "embedding-gemma": {
+                "name": "google/embeddinggemma-300m",
+                "description": "다국어 지원 SentenceTransformer 모델",
+                "language": "Multilingual",
+                "size": "~1.2G"
+            },
             "ko-sroberta-multitask": {
                 "name": "jhgan/ko-sroberta-multitask",
                 "description": "한국어 특화 SentenceTransformer 모델",
@@ -55,6 +63,8 @@ class MultiEmbeddingManager:
 
         self.loaded_embeddings = {}
         self.current_model = None
+        self.hf_api_token = api_token
+        print(f"embedding manager with key: {self.hf_api_token}")
 
     def load_embedding_model(self, model_key: str) -> HuggingFaceEmbeddings:
         """임베딩 모델 로드"""
@@ -66,12 +76,22 @@ class MultiEmbeddingManager:
 
         model_info = self.embedding_models[model_key]
         print(f"Loading embedding model: {model_info['name']} ({model_info['size']})")
-
+        print(f"my hf api token = {self.hf_api_token}")   
         try:
-            embeddings = HuggingFaceEmbeddings(
-                model_name=model_info['name'],
-                model_kwargs={'device': 'cpu'}
-            )
+
+            if model_key == "embedding-gemma":
+                
+                # # Download from the 🤗 Hub
+                # model = SentenceTransformer("google/embeddinggemma-300m")
+                embeddings = HuggingFaceEmbeddings(
+                    model_name=model_info['name'],
+                    model_kwargs={'device': 'cpu', "token": self.hf_api_token}
+                )
+            else:
+                embeddings = HuggingFaceEmbeddings(
+                    model_name=model_info['name'],
+                    model_kwargs={'device': 'cpu', "token": self.hf_api_token}
+                )
             self.loaded_embeddings[model_key] = embeddings
             self.current_model = model_key
             return embeddings
@@ -95,8 +115,8 @@ class MultiEmbeddingManager:
         return "모델이 로드되지 않음"
 
 class VectorStoreManager:
-    def __init__(self, embedding_model_key: str = "ko-sroberta-multitask", save_directory: str = "faiss_indexes"):
-        self.embedding_manager = MultiEmbeddingManager()
+    def __init__(self, embedding_model_key: str = "embedding-gemma", save_directory: str = "faiss_indexes", hf_api_token: str = None):
+        self.embedding_manager = MultiEmbeddingManager(api_token=hf_api_token)
         self.embeddings = self.embedding_manager.load_embedding_model(embedding_model_key)
         self.vector_stores = {}  # 모델별 벡터 스토어 저장
         self.current_vector_store = None

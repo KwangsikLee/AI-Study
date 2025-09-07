@@ -98,8 +98,7 @@ class KoreanTextSplitter:
         split_docs = []
         for doc in documents:
             # 텍스트 전처리
-            preprocessed_text = self.preprocess_text(doc.page_content)
-
+            preprocessed_text = self.preprocess_text(doc.page_content)            
             # 검색용 콘텐츠 생성
             searchable_content = self.create_searchable_content(doc.page_content)
 
