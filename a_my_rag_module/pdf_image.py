@@ -72,8 +72,11 @@ class PDFImageExtractor:
                 # 일반 페이지 추출
                 image_path = self._extract_single_page(page, page_num, output_dir)
                 image_paths.append(image_path)
+            
+            page = None
         
         pdf_document.close()
+        pdf_document = None
         return image_paths
     
     def _extract_single_page(self, page, page_num: int, output_dir: str) -> str:
@@ -98,6 +101,7 @@ class PDFImageExtractor:
         
         # 이미지 저장
         pix.save(optimized_path)
+        pix = None
         
         # 크기 최적화 적용
         if self.max_size or self.target_size:
@@ -239,12 +243,12 @@ class PDFImageExtractor:
         # 최적화된 이미지 저장
         optimized_path = image_path.replace('.png', '_optimized.png')
         img.save(optimized_path, 'PNG', quality=95)
-        
+
+        print(f"    🔧 크기 최적화: {original_width}x{original_height} → {img.size[0]}x{img.size[1]}")
+                
+        img = None
         # 원본 파일 삭제
         os.remove(image_path)
-        
-        print(f"    🔧 크기 최적화: {original_width}x{original_height} → {img.size[0]}x{img.size[1]}")
-        
         return optimized_path
     
     def preprocess_image(self, image_path: str) -> np.ndarray:

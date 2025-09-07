@@ -14,6 +14,8 @@ from typing import List, Dict, Any, Optional, Callable
 import pickle
 import json
 from datetime import datetime
+import gc
+import psutil
 
 # LangChain imports
 from langchain.schema import Document
@@ -41,19 +43,13 @@ class CollegeRAGSystem:
         self.vector_db_dir.mkdir(exist_ok=True)
         
         # 구성 요소 초기화
-        self.pdf_extractor = PDFImageExtractor(dpi=150, max_size=2048)
+        self.pdf_extractor = PDFImageExtractor(dpi=100, max_size=2048)
         self.ocr = KoreanOCR()
         
-        # OpenAI 설정
-        self.llm = ChatOpenAI(
-            model= "gpt-4o-mini",  #"gpt-3.5-turbo",
-            temperature=0.2,
-            max_tokens=1000
-        )
-        
-        # 임베딩 모델
-        self.embeddings = OpenAIEmbeddings()
-        
+        # LLM 설정 (필요시 지연 로딩)
+        self.llm = None
+        self.embeddings = None
+
         # 텍스트 분할기
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=800,
@@ -71,7 +67,35 @@ class CollegeRAGSystem:
         print(f"CollegeRAGSystem 초기화 완료")
         print(f"PDF 디렉토리: {self.pdf_dir}")
         print(f"벡터 DB 디렉토리: {self.vector_db_dir}")
+        
+    def force_memory_cleanup(self):
+        """강제 메모리 정리"""
+        gc.collect()
+        
+        # GPU 메모리 정리 (PyTorch)
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
     
+    def initialize_llm_components(self):
+        """LLM 구성요소 지연 초기화"""
+        if self.llm is None:
+            print("🤖 LLM 구성요소 초기화 중...")
+            
+            # OpenAI 설정
+            self.llm = ChatOpenAI(
+                model= "gpt-4o-mini",  #"gpt-3.5-turbo",
+                temperature=0.2,
+                max_tokens=800
+            )
+            
+            # 임베딩 모델
+            self.embeddings = OpenAIEmbeddings()         
+            print(f"   ✅ LLM 초기화 완료 (+{memory_used:.1f}MB)")
+
     def setup_prompt_template(self):
         """프롬프트 템플릿 설정"""
         self.prompt_template = PromptTemplate(
@@ -118,8 +142,8 @@ class CollegeRAGSystem:
             all_documents = []
             
             # 샘플로 처음 1개 파일만 처리 (MVP)
-            sample_files = pdf_files[:1]
-            
+            # sample_files = pdf_files[:1]
+            sample_files = [self.pdf_dir / "01-경영대학.pdf"]
             for i, pdf_file in enumerate(sample_files):
                 try:
                     if progress_callback:
@@ -135,6 +159,13 @@ class CollegeRAGSystem:
                     )
                     
                     print(f"  📷 추출된 이미지: {len(image_paths)}개")
+                    
+                    check_memory = True # = self.check_memory_threshold()
+                    if check_memory:
+                        print("⚠️ 메모리 임계값 초과 - 강제 정리 및 대기")
+                        self.force_memory_cleanup()
+                        import time
+                        time.sleep(2)  # 메모리 안정화 대기
                     
                     # 2. OCR로 텍스트 추출
                     pdf_texts = []
@@ -173,6 +204,9 @@ class CollegeRAGSystem:
                     print(f"  ❌ 오류: {pdf_file.name} - {e}")
                     continue
             
+            # memory release ocr model
+            self.ocr.cleanup_ocr_model()
+
             if not all_documents:
                 raise ValueError("처리된 문서가 없습니다.")
             
@@ -181,12 +215,47 @@ class CollegeRAGSystem:
             if progress_callback:
                 progress_callback(f"벡터 임베딩 생성 중... ({len(all_documents)}개 문서)")
             
-            # 4. 벡터 스토어 생성
-            self.vector_store = FAISS.from_documents(
-                documents=all_documents,
-                embedding=self.embeddings
-            )
+            # 4. LLM 구성요소 초기화
+            self.initialize_llm_components()
+
+
+            # 문서를 작은 배치로 나누어 처리 (메모리 절약)
+            batch_size = 50  # 한 번에 50개 문서씩
             
+            if len(all_documents) <= batch_size:
+                # 문서가 적으면 한 번에 처리
+                self.vector_store = FAISS.from_documents(
+                    documents=all_documents,
+                    embedding=self.embeddings
+                )
+            else:
+                # 배치로 나누어 처리
+                print(f"   📦 배치 처리: {batch_size}개씩")
+                
+                # 첫 번째 배치로 벡터 스토어 생성
+                first_batch = all_documents[:batch_size]
+                self.vector_store = FAISS.from_documents(
+                    documents=first_batch,
+                    embedding=self.embeddings
+                )
+                
+                # 나머지 배치들을 추가
+                for i in range(batch_size, len(all_documents), batch_size):
+                    batch = all_documents[i:i + batch_size]
+                    batch_vector_store = FAISS.from_documents(
+                        documents=batch,
+                        embedding=self.embeddings
+                    )
+                    
+                    # 벡터 스토어 병합
+                    self.vector_store.merge_from(batch_vector_store)
+                    
+                    # 배치 처리 후 메모리 정리
+                    batch_vector_store = None
+                    gc.collect()
+                    
+                    print(f"   ✅ 배치 {i//batch_size + 1} 완료")
+
             # 5. 벡터 스토어 저장
             self.vector_store.save_local(str(self.vector_db_dir))
             

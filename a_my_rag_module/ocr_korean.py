@@ -148,7 +148,14 @@ class KoreanOCRCorrector:
 
 class KoreanOCR:
     def __init__(self, use_paddle=True):
-        if use_paddle:
+        self.use_paddle = use_paddle
+        self.paddle_ocr = None
+        self.eacy_ocr = None
+        #self.corrector = KoreanOCRCorrector(replace_mode = False)
+        self.corrector = None
+
+    def _load_ocr_model(self):
+        if self.use_paddle:
             self.paddle_ocr = PPStructureV3(
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
@@ -158,9 +165,12 @@ class KoreanOCR:
             # GPU 사용 (없으면 자동으로 CPU 사용)
             self.eacy_ocr = easyocr.Reader(['ko', 'en'], gpu=True)
 
-        #self.corrector = KoreanOCRCorrector(replace_mode = False)
-        self.corrector = None
-
+    def cleanup_ocr_model(self):
+        """OCR 모델 해제 (필요시)"""
+        if self.eacy_ocr is not None:
+            self.ocr_model = None
+        if self.paddle_ocr is not None:
+            self.paddle_ocr = None
 
     # 후처리: 한글 정규화
     def normalize_korean(text: str) -> str:
@@ -182,6 +192,11 @@ class KoreanOCR:
             image_path: 이미지 파일 경로
             threshold: 신뢰도 임계값
         """
+        if self.use_paddle and self.paddle_ocr is None:
+            self._load_ocr_model()
+        elif not self.use_paddle and self.eacy_ocr is None:
+            self._load_ocr_model()
+
         if self.paddle_ocr:
             layout_info = self.extract_with_paddleocr(image_path)
         else: 
