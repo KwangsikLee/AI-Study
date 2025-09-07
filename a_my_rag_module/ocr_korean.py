@@ -182,27 +182,14 @@ class KoreanOCR:
             image_path: 이미지 파일 경로
             threshold: 신뢰도 임계값
         """
-        # 텍스트 검출
-        results = self.eacy_ocr.readtext(
-            image_path,
-            detail=1,  # bbox, text, confidence 모두 반환
-            paragraph=False,  # 단락 병합 비활성화
-            width_ths=0.7,  # 텍스트 박스 너비 임계값
-            height_ths=0.7  # 텍스트 박스 높이 임계값
-        )
+        if self.paddle_ocr:
+            layout_info = self.extract_with_paddleocr(image_path)
+        else: 
+            layout_info = self.extract_with_layout(image_path)
         
-        # 신뢰도 필터링
-        filtered_results = []
-        for bbox, text, confidence in results:
-            if confidence >= threshold:
-                filtered_results.append({
-                    'bbox': bbox,
-                    'text': text,
-                    'confidence': confidence
-                })
-        
-        return filtered_results
-    
+        all_text = '\n'.join( para['text'] for para in layout_info)        
+        return all_text
+
     def extract_with_layout(self, image_path):
         """레이아웃 정보와 함께 추출"""
         # 상세 정보 포함 추출
@@ -449,63 +436,3 @@ class KoreanOCR:
         
         return image
 
-def set_font(): 
-    # 폰트 설정
-    font_path='/System/Library/Fonts/Supplemental/AppleGothic.ttf'
-    # fontprop = fm.FontProperties(fname=font_path, size=10)
-    plt.rcParams['font.family'] = 'AppleGothic'  # macOS
-    plt.rcParams['axes.unicode_minus'] = False
-    
-set_font()
-
-
-
-image_path = "./myTermPro/temp_images/page_2_left_optimized.png"
-# image_path = "./myTermPro/temp_images/page_1_right_optimized.png"
-# 사용 예제
-ocr = KoreanOCR()
-
-def test_easyocr():
-    # 텍스트 추출
-    # results = ocr.extract_text(image_path, threshold=0.3)
-
-    # # 결과 출력
-    # for result in results:
-    #     print(f"텍스트: {result['text']}")
-    #     print(f"신뢰도: {result['confidence']:.2f}")
-    #     print("-" * 50)
-
-    # 레이아웃 포함 추출
-    layout_results = ocr.extract_with_layout(image_path)
-
-
-    for i, item in enumerate(layout_results):
-        print(f"라인 {i+1}: {item['text']}")    
-
-    vis = ocr.visualize_results(image_path=image_path, results=layout_results)
-    # vis는 이미 생성된 시각화 이미지 (PIL Image 객체)
-    plt.figure(figsize=(12, 8))
-    plt.imshow(vis)
-    plt.axis('off')  # 축 제거
-    plt.title('OCR Layout Detection Results', fontsize=16)
-    plt.tight_layout()
-    plt.show()
-
-def test_paddleocr():
-    # 텍스트 추출
-    layout_results = ocr.extract_with_paddleocr(image_path=image_path)
-
-    for i, item in enumerate(layout_results):
-        print(f"라인 {i+1}: {item['text']}")   
-
-    vis = ocr.visualize_results(image_path=image_path, results=layout_results)
-    # vis는 이미 생성된 시각화 이미지 (PIL Image 객체)
-    plt.figure(figsize=(12, 8))
-    plt.imshow(vis)
-    plt.axis('off')  # 축 제거
-    plt.title('OCR Layout Detection Results', fontsize=16)
-    plt.tight_layout()
-    plt.show()
-
-# test_easyocr()    
-test_paddleocr()

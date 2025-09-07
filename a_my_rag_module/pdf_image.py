@@ -103,7 +103,7 @@ class PDFImageExtractor:
         if self.max_size or self.target_size:
             optimized_path = self._optimize_image_size(optimized_path, width, height)
         
-        print(f"페이지 {page_num + 1} 추출 완료: {optimized_path} ({width}x{height})")
+        print(f"페이지 {page_num + 1} 추출 완료: {optimized_path}")
         return optimized_path
     
     def _extract_split_page(self, page, page_num: int, output_dir: str) -> List[str]:
