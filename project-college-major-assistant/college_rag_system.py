@@ -7,466 +7,53 @@ Author: kwangsiklee
 Version: 0.1.0
 """
 
-import os
 import sys
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Callable
-import pickle
-import json
-from datetime import datetime
-import gc
-import psutil
+from typing import Dict, Any, Optional, Callable
 
-# LangChain imports
-from langchain.schema import Document
-from langchain_community.vectorstores import FAISS
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-# a_my_rag_module 추가
-sys.path.append(str(Path(__file__).parent.parent))
-from a_my_rag_module import PDFImageExtractor, KoreanOCR, MultiEmbeddingManager
+# 분리된 클래스들 import
+from vector_store_builder import VectorStoreBuilder
+from college_qa_system import CollegeQASystem
 
 
 class CollegeRAGSystem:
-    """대학교 학과 안내 자료 기반 RAG 시스템"""
+    """통합 인터페이스 - 기존 코드 호환성을 위한 wrapper 클래스"""
     
     def __init__(self, pdf_dir: str, temp_images_dir: str, vector_db_dir: str):
         self.pdf_dir = Path(pdf_dir)
         self.temp_images_dir = Path(temp_images_dir)
         self.vector_db_dir = Path(vector_db_dir)
         
-        # 디렉토리 생성
-        self.temp_images_dir.mkdir(exist_ok=True)
-        self.vector_db_dir.mkdir(exist_ok=True)
-        
         # 구성 요소 초기화
-        self.pdf_extractor = PDFImageExtractor(dpi=100, max_size=2048)
-        self.ocr = KoreanOCR()
+        self.builder = VectorStoreBuilder(pdf_dir, temp_images_dir, vector_db_dir)
+        self.qa_system = CollegeQASystem(vector_db_dir)
         
-        # LLM 설정 (필요시 지연 로딩)
-        self.llm = None
-        self.embeddings = None
-
-        # 텍스트 분할기
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=800,
-            chunk_overlap=100,
-            separators=["\n\n", "\n", ". ", "! ", "? ", " ", ""]
-        )
-        
-        # 벡터 스토어
-        self.vector_store = None
-        self.qa_chain = None
-        
-        # 프롬프트 템플릿
-        self.setup_prompt_template()
-        
-        print(f"CollegeRAGSystem 초기화 완료")
+        print(f"CollegeRAGSystem 초기화 완료 (통합 인터페이스)")
         print(f"PDF 디렉토리: {self.pdf_dir}")
         print(f"벡터 DB 디렉토리: {self.vector_db_dir}")
-        
-    def force_memory_cleanup(self):
-        """강제 메모리 정리"""
-        gc.collect()
-        
-        # GPU 메모리 정리 (PyTorch)
-        try:
-            import torch
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        except ImportError:
-            pass
     
-    def initialize_llm_components(self):
-        """LLM 구성요소 지연 초기화"""
-        if self.llm is None:
-            print("🤖 LLM 구성요소 초기화 중...")
-            
-            # OpenAI 설정
-            self.llm = ChatOpenAI(
-                model= "gpt-4o-mini",  #"gpt-3.5-turbo",
-                temperature=0.2,
-                max_tokens=800
-            )
-            
-            # 임베딩 모델
-            self.embeddings = OpenAIEmbeddings()                     
-
-    def setup_prompt_template(self):
-        """프롬프트 템플릿 설정"""
-        self.prompt_template = PromptTemplate(
-            input_variables=["context", "question"],
-            template="""당신은 고등학생들의 대학교 전공 선택을 도와주는 전문 상담사입니다.
-
-아래 대학교 학과 안내 자료를 바탕으로 학생의 질문에 정확하고 도움이 되는 답변을 해주세요.
-
-참고 자료:
-{context}
-
-질문: {question}
-
-답변 시 다음 사항을 고려해주세요:
-1. 고등학생이 이해하기 쉬운 언어로 설명해주세요
-2. 구체적이고 실용적인 정보를 제공해주세요  
-3. 진로와 관련된 조언을 포함해주세요
-4. 참고 자료에 없는 내용은 일반적인 정보로 보완해주세요
-5. 친근하고 격려하는 톤으로 답변해주세요
-6. 참고 자료에 있는 답변과 없는 답변을 구분해서 표현해주세요
-답변:"""
-        )
-    
+    # VectorStoreBuilder 메서드들을 위임
     def vector_store_exists(self) -> bool:
-        """벡터 스토어가 이미 존재하는지 확인"""
-        faiss_index_path = self.vector_db_dir / "index.faiss"
-        faiss_pkl_path = self.vector_db_dir / "index.pkl"
-        return faiss_index_path.exists() and faiss_pkl_path.exists()
+        return self.builder.vector_store_exists()
     
     def build_vector_store(self, progress_callback: Optional[Callable] = None):
-        """PDF 파일들을 처리하여 벡터 스토어 구축"""
-        try:
-            if progress_callback:
-                progress_callback("PDF 파일 목록 확인 중...")
-            
-            # PDF 파일 목록 가져오기
-            pdf_files = list(self.pdf_dir.glob("*.pdf"))
-            
-            if not pdf_files:
-                raise ValueError(f"PDF 파일이 없습니다: {self.pdf_dir}")
-            
-            print(f"발견된 PDF 파일: {len(pdf_files)}개")
-            
-            all_documents = []
-            
-            # 샘플로 처음 1개 파일만 처리 (MVP)
-            # sample_files = pdf_files[:1]
-            sample_files = [self.pdf_dir / "01-경영대학.pdf"]
-            for i, pdf_file in enumerate(sample_files):
-                try:
-                    if progress_callback:
-                        progress_callback(f"처리 중: {pdf_file.name} ({i+1}/{len(sample_files)})")
-                    
-                    print(f"\n📄 처리 중: {pdf_file.name}")
-                    
-                    # 1. PDF에서 이미지 추출
-                    image_paths = self.pdf_extractor.extract_images_from_pdf(
-                        str(pdf_file),
-                        str(self.temp_images_dir),
-                        split_large_pages=True
-                    )
-                    
-                    print(f"  📷 추출된 이미지: {len(image_paths)}개")
-                    
-                    check_memory = True # = self.check_memory_threshold()
-                    if check_memory:
-                        print("⚠️ 메모리 임계값 초과 - 강제 정리 및 대기")
-                        self.force_memory_cleanup()
-                        import time
-                        time.sleep(2)  # 메모리 안정화 대기
-                    
-                    # 2. OCR로 텍스트 추출
-                    pdf_texts = []
-                    for img_path in image_paths:
-                        try:
-                            text = self.ocr.extract_text(img_path)
-                            if text.strip():  # 빈 텍스트가 아닌 경우만
-                                pdf_texts.append(text.strip())
-                        except Exception as e:
-                            print(f"    ⚠️ OCR 실패: {img_path} - {e}")
-                            continue
-                    
-                    print(f"  📝 추출된 텍스트 블록: {len(pdf_texts)}개")
-                    
-                    # 3. 텍스트를 Document 객체로 변환
-                    for j, text in enumerate(pdf_texts):
-                        if len(text) > 50:  # 너무 짧은 텍스트 제외
-                            # 텍스트 분할
-                            chunks = self.text_splitter.split_text(text)
-                            
-                            for k, chunk in enumerate(chunks):
-                                doc = Document(
-                                    page_content=chunk,
-                                    metadata={
-                                        "source": pdf_file.name,
-                                        "page": j + 1,
-                                        "chunk": k + 1,
-                                        "processed_at": datetime.now().isoformat()
-                                    }
-                                )
-                                all_documents.append(doc)
-                    
-                    print(f"  ✅ 완료: {pdf_file.name}")
-                    
-                except Exception as e:
-                    print(f"  ❌ 오류: {pdf_file.name} - {e}")
-                    continue
-            
-            # memory release ocr model
-            self.ocr.cleanup_ocr_model()
-
-            if not all_documents:
-                raise ValueError("처리된 문서가 없습니다.")
-            
-            print(f"\n📊 총 문서 수: {len(all_documents)}개")
-            
-            if progress_callback:
-                progress_callback(f"벡터 임베딩 생성 중... ({len(all_documents)}개 문서)")
-            
-            # 4. LLM 구성요소 초기화
-            self.initialize_llm_components()
-
-
-            # 문서를 작은 배치로 나누어 처리 (메모리 절약)
-            batch_size = 50  # 한 번에 50개 문서씩
-            
-            if len(all_documents) <= batch_size:
-                # 문서가 적으면 한 번에 처리
-                self.vector_store = FAISS.from_documents(
-                    documents=all_documents,
-                    embedding=self.embeddings
-                )
-            else:
-                # 배치로 나누어 처리
-                print(f"   📦 배치 처리: {batch_size}개씩")
-                
-                # 첫 번째 배치로 벡터 스토어 생성
-                first_batch = all_documents[:batch_size]
-                self.vector_store = FAISS.from_documents(
-                    documents=first_batch,
-                    embedding=self.embeddings
-                )
-                
-                # 나머지 배치들을 추가
-                for i in range(batch_size, len(all_documents), batch_size):
-                    batch = all_documents[i:i + batch_size]
-                    batch_vector_store = FAISS.from_documents(
-                        documents=batch,
-                        embedding=self.embeddings
-                    )
-                    
-                    # 벡터 스토어 병합
-                    self.vector_store.merge_from(batch_vector_store)
-                    
-                    # 배치 처리 후 메모리 정리
-                    batch_vector_store = None
-                    gc.collect()
-                    
-                    print(f"   ✅ 배치 {i//batch_size + 1} 완료")
-
-            # 5. 벡터 스토어 저장
-            self.vector_store.save_local(str(self.vector_db_dir))
-            
-            # 6. 메타데이터 저장
-            metadata = {
-                "created_at": datetime.now().isoformat(),
-                "total_documents": len(all_documents),
-                "processed_pdfs": [f.name for f in sample_files],
-                "vector_db_path": str(self.vector_db_dir)
-            }
-            
-            metadata_path = self.vector_db_dir / "metadata.json"
-            with open(metadata_path, 'w', encoding='utf-8') as f:
-                json.dump(metadata, f, ensure_ascii=False, indent=2)
-            
-            # 7. QA 체인 설정
-            self.setup_qa_chain()
-            
-            if progress_callback:
-                progress_callback(f"벡터 스토어 구축 완료! (문서 {len(all_documents)}개)")
-            
-            print(f"✅ 벡터 스토어 구축 완료!")
-            print(f"   저장 위치: {self.vector_db_dir}")
-            print(f"   총 문서: {len(all_documents)}개")
-            
-        except Exception as e:
-            error_msg = f"벡터 스토어 구축 실패: {e}"
-            print(f"❌ {error_msg}")
-            if progress_callback:
-                progress_callback(error_msg)
-            raise
-    
-    def load_vector_store(self):
-        """기존 벡터 스토어 로드"""
-        try:
-            print("기존 벡터 스토어 로드 중...")
-            
-            self.vector_store = FAISS.load_local(
-                str(self.vector_db_dir),
-                embeddings=self.embeddings,
-                allow_dangerous_deserialization=True
-            )
-            
-            # QA 체인 설정
-            self.setup_qa_chain()
-            
-            # 메타데이터 로드
-            metadata_path = self.vector_db_dir / "metadata.json"
-            if metadata_path.exists():
-                with open(metadata_path, 'r', encoding='utf-8') as f:
-                    metadata = json.load(f)
-                print(f"✅ 벡터 스토어 로드 완료!")
-                print(f"   생성일: {metadata.get('created_at', 'Unknown')}")
-                print(f"   문서 수: {metadata.get('total_documents', 'Unknown')}")
-            else:
-                print("✅ 벡터 스토어 로드 완료!")
-            
-        except Exception as e:
-            print(f"❌ 벡터 스토어 로드 실패: {e}")
-            raise
-    
-    def setup_qa_chain(self):
-        """QA 체인 설정"""
-        if self.vector_store is None:
-            raise ValueError("벡터 스토어가 초기화되지 않았습니다.")
-        
-        # 리트리버 설정 (상위 3개 문서 검색)
-        retriever = self.vector_store.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": 3}
-        )
-        
-        # QA 체인 생성
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=self.llm,
-            chain_type="stuff",
-            retriever=retriever,
-            chain_type_kwargs={
-                "prompt": self.prompt_template
-            },
-            return_source_documents=True
-        )
-        
-        print("✅ QA 체인 설정 완료")
-    
-    def query(self, question: str) -> Dict[str, Any]:
-        """질문에 대한 답변 생성"""
-        if self.qa_chain is None:
-            raise ValueError("QA 체인이 설정되지 않았습니다. 먼저 벡터 스토어를 로드하세요.")
-        
-        try:
-            print(f"🔍 질문 처리: {question}")
-            
-            # QA 체인으로 질문 처리
-            result = self.qa_chain.invoke({"query": question})
-            
-            # 답변 추출
-            answer = result.get("result", "답변을 생성할 수 없습니다.")
-            source_docs = result.get("source_documents", [])
-            
-            # 소스 정보 생성
-            sources = []
-            for doc in source_docs:
-                metadata = doc.metadata
-                source_info = f"{metadata.get('source', 'Unknown')} (페이지 {metadata.get('page', '?')})"
-                if source_info not in sources:
-                    sources.append(source_info)
-            
-            print(f"✅ 답변 생성 완료 (참고 자료: {len(sources)}개)")
-            
-            return {
-                "question": question,
-                "answer": answer,
-                "sources": sources,
-                "source_documents": source_docs
-            }
-            
-        except Exception as e:
-            error_msg = f"질문 처리 중 오류 발생: {e}"
-            print(f"❌ {error_msg}")
-            
-            return {
-                "question": question,
-                "answer": f"죄송합니다. {error_msg}",
-                "sources": [],
-                "source_documents": []
-            }
+        return self.builder.build_vector_store(progress_callback)
     
     def initialize_vector_db(self, force_rebuild: bool = False, progress_callback: Optional[Callable] = None):
-        """벡터 DB 초기화 - 독립 실행 가능한 초기화 함수"""
-        try:
-            if progress_callback:
-                progress_callback("벡터 DB 초기화 시작...")
-            
-            print("🔄 벡터 DB 초기화 시작...")
-            
-            # 기존 벡터 DB 확인
-            if self.vector_store_exists() and not force_rebuild:
-                if progress_callback:
-                    progress_callback("기존 벡터 DB 발견 - 로드 중...")
-                
-                print("📁 기존 벡터 DB 발견 - 로드 시도...")
-                try:
-                    self.initialize_llm_components()
-                    self.load_vector_store()
-                    
-                    if progress_callback:
-                        progress_callback("✅ 기존 벡터 DB 로드 완료!")
-                    
-                    print("✅ 기존 벡터 DB 로드 완료!")
-                    return True, "기존 벡터 DB를 성공적으로 로드했습니다."
-                
-                except Exception as e:
-                    if progress_callback:
-                        progress_callback(f"기존 DB 로드 실패 - 새로 구축: {e}")
-                    
-                    print(f"⚠️ 기존 DB 로드 실패 - 새로 구축합니다: {e}")
-                    force_rebuild = True
-            
-            # 새 벡터 DB 구축 또는 강제 재구축
-            if not self.vector_store_exists() or force_rebuild:
-                if force_rebuild:
-                    if progress_callback:
-                        progress_callback("기존 벡터 DB 삭제 후 새로 구축...")
-                    
-                    print("🗑️ 기존 벡터 DB 삭제 후 새로 구축...")
-                    # 기존 벡터 DB 파일 삭제
-                    import shutil
-                    if self.vector_db_dir.exists():
-                        shutil.rmtree(self.vector_db_dir)
-                        self.vector_db_dir.mkdir(exist_ok=True)
-                
-                if progress_callback:
-                    progress_callback("새 벡터 DB 구축 시작...")
-                
-                print("🏗️ 새 벡터 DB 구축 시작...")
-                self.build_vector_store(progress_callback)
-                
-                if progress_callback:
-                    progress_callback("✅ 새 벡터 DB 구축 완료!")
-                
-                print("✅ 새 벡터 DB 구축 완료!")
-                return True, "새 벡터 DB를 성공적으로 구축했습니다."
-            
-        except Exception as e:
-            error_msg = f"벡터 DB 초기화 실패: {e}"
-            print(f"❌ {error_msg}")
-            
-            if progress_callback:
-                progress_callback(f"❌ {error_msg}")
-            
-            return False, error_msg
+        return self.builder.initialize_vector_db(force_rebuild, progress_callback)
     
     def get_vector_store_info(self) -> Dict[str, Any]:
-        """벡터 스토어 정보 반환"""
-        info = {
-            "exists": self.vector_store_exists(),
-            "initialized": self.vector_store is not None,
-            "vector_db_path": str(self.vector_db_dir)
-        }
-        
-        # 메타데이터 정보 추가
-        metadata_path = self.vector_db_dir / "metadata.json"
-        if metadata_path.exists():
-            try:
-                with open(metadata_path, 'r', encoding='utf-8') as f:
-                    metadata = json.load(f)
-                info.update(metadata)
-            except Exception as e:
-                info["metadata_error"] = str(e)
-        
-        return info
+        return self.builder.get_vector_store_info()
+    
+    # CollegeQASystem 메서드들을 위임
+    def load_vector_store(self):
+        return self.qa_system.load_vector_store()
+    
+    def setup_qa_chain(self):
+        return self.qa_system.setup_qa_chain()
+    
+    def query(self, question: str) -> Dict[str, Any]:
+        return self.qa_system.query(question)
 
 
 # 독립 실행 함수들

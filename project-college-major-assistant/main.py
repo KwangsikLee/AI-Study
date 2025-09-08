@@ -64,7 +64,6 @@ class CollegeMajorAssistant:
                 if progress_callback:
                     progress_callback("기존 벡터 DB 로드 중...")
 
-                self.rag_system.initialize_llm_components()
                 self.rag_system.load_vector_store()
             
             self.is_initialized = True
