@@ -93,8 +93,7 @@ class CollegeRAGSystem:
             )
             
             # 임베딩 모델
-            self.embeddings = OpenAIEmbeddings()         
-            print(f"   ✅ LLM 초기화 완료 (+{memory_used:.1f}MB)")
+            self.embeddings = OpenAIEmbeddings()                     
 
     def setup_prompt_template(self):
         """프롬프트 템플릿 설정"""
@@ -115,7 +114,7 @@ class CollegeRAGSystem:
 3. 진로와 관련된 조언을 포함해주세요
 4. 참고 자료에 없는 내용은 일반적인 정보로 보완해주세요
 5. 친근하고 격려하는 톤으로 답변해주세요
-
+6. 참고 자료에 있는 답변과 없는 답변을 구분해서 표현해주세요
 답변:"""
         )
     
@@ -384,6 +383,71 @@ class CollegeRAGSystem:
                 "source_documents": []
             }
     
+    def initialize_vector_db(self, force_rebuild: bool = False, progress_callback: Optional[Callable] = None):
+        """벡터 DB 초기화 - 독립 실행 가능한 초기화 함수"""
+        try:
+            if progress_callback:
+                progress_callback("벡터 DB 초기화 시작...")
+            
+            print("🔄 벡터 DB 초기화 시작...")
+            
+            # 기존 벡터 DB 확인
+            if self.vector_store_exists() and not force_rebuild:
+                if progress_callback:
+                    progress_callback("기존 벡터 DB 발견 - 로드 중...")
+                
+                print("📁 기존 벡터 DB 발견 - 로드 시도...")
+                try:
+                    self.initialize_llm_components()
+                    self.load_vector_store()
+                    
+                    if progress_callback:
+                        progress_callback("✅ 기존 벡터 DB 로드 완료!")
+                    
+                    print("✅ 기존 벡터 DB 로드 완료!")
+                    return True, "기존 벡터 DB를 성공적으로 로드했습니다."
+                
+                except Exception as e:
+                    if progress_callback:
+                        progress_callback(f"기존 DB 로드 실패 - 새로 구축: {e}")
+                    
+                    print(f"⚠️ 기존 DB 로드 실패 - 새로 구축합니다: {e}")
+                    force_rebuild = True
+            
+            # 새 벡터 DB 구축 또는 강제 재구축
+            if not self.vector_store_exists() or force_rebuild:
+                if force_rebuild:
+                    if progress_callback:
+                        progress_callback("기존 벡터 DB 삭제 후 새로 구축...")
+                    
+                    print("🗑️ 기존 벡터 DB 삭제 후 새로 구축...")
+                    # 기존 벡터 DB 파일 삭제
+                    import shutil
+                    if self.vector_db_dir.exists():
+                        shutil.rmtree(self.vector_db_dir)
+                        self.vector_db_dir.mkdir(exist_ok=True)
+                
+                if progress_callback:
+                    progress_callback("새 벡터 DB 구축 시작...")
+                
+                print("🏗️ 새 벡터 DB 구축 시작...")
+                self.build_vector_store(progress_callback)
+                
+                if progress_callback:
+                    progress_callback("✅ 새 벡터 DB 구축 완료!")
+                
+                print("✅ 새 벡터 DB 구축 완료!")
+                return True, "새 벡터 DB를 성공적으로 구축했습니다."
+            
+        except Exception as e:
+            error_msg = f"벡터 DB 초기화 실패: {e}"
+            print(f"❌ {error_msg}")
+            
+            if progress_callback:
+                progress_callback(f"❌ {error_msg}")
+            
+            return False, error_msg
+    
     def get_vector_store_info(self) -> Dict[str, Any]:
         """벡터 스토어 정보 반환"""
         info = {
@@ -405,7 +469,64 @@ class CollegeRAGSystem:
         return info
 
 
-# 테스트 함수
+# 독립 실행 함수들
+def initialize_database(force_rebuild: bool = False):
+    """독립 실행 가능한 벡터 DB 초기화 함수"""
+    print("🚀 벡터 DB 초기화 시작")
+    print("=" * 50)
+    
+    # 경로 설정
+    base_dir = Path(__file__).parent
+    pdf_dir = base_dir / "korea_univ_guides"
+    temp_images_dir = base_dir / "temp_images"
+    vector_db_dir = base_dir / "vector_db"
+    
+    # PDF 파일 확인
+    pdf_files = list(pdf_dir.glob("*.pdf"))
+    if not pdf_files:
+        print(f"❌ PDF 파일이 없습니다: {pdf_dir}")
+        print("   korea_univ_guides/ 폴더에 대학교 안내 PDF 파일을 추가하세요.")
+        return False
+    
+    print(f"📄 발견된 PDF 파일: {len(pdf_files)}개")
+    
+    # RAG 시스템 초기화
+    try:
+        rag_system = CollegeRAGSystem(
+            pdf_dir=str(pdf_dir),
+            temp_images_dir=str(temp_images_dir),
+            vector_db_dir=str(vector_db_dir)
+        )
+        
+        # 벡터 DB 초기화 실행
+        success, message = rag_system.initialize_vector_db(
+            force_rebuild=force_rebuild
+        )
+        
+        if success:
+            print(f"\n✅ 성공: {message}")
+            
+            # 벡터 스토어 정보 출력
+            info = rag_system.get_vector_store_info()
+            print(f"\n📊 벡터 DB 정보:")
+            print(f"   경로: {info['vector_db_path']}")
+            print(f"   문서 수: {info.get('total_documents', 'Unknown')}개")
+            processed_pdfs = info.get('processed_pdfs', ['Unknown'])
+            if isinstance(processed_pdfs, list):
+                print(f"   처리된 PDF: {', '.join(processed_pdfs)}")
+            else:
+                print(f"   처리된 PDF: {processed_pdfs}")
+            print(f"   생성일: {info.get('created_at', 'Unknown')}")
+            
+            return True
+        else:
+            print(f"\n❌ 실패: {message}")
+            return False
+            
+    except Exception as e:
+        print(f"\n❌ 초기화 중 오류 발생: {e}")
+        return False
+
 def test_rag_system():
     """RAG 시스템 테스트"""
     print("🧪 RAG 시스템 테스트 시작")
@@ -448,7 +569,31 @@ def test_rag_system():
 
 
 if __name__ == "__main__":
-    # 환경 변수 로드
+    import argparse
     from dotenv import load_dotenv
+    
+    # 환경 변수 로드
     load_dotenv()
-    test_rag_system()
+    
+    # 명령줄 인수 파싱
+    parser = argparse.ArgumentParser(description="대학 학과 선택 도우미 RAG 시스템")
+    parser.add_argument("--init-db", action="store_true", 
+                       help="벡터 DB 초기화")
+    parser.add_argument("--force-rebuild", action="store_true",
+                       help="기존 DB 삭제 후 강제 재구축")
+    parser.add_argument("--test", action="store_true",
+                       help="RAG 시스템 테스트 실행")
+    
+    args = parser.parse_args()
+    
+    if args.init_db:
+        success = initialize_database(force_rebuild=args.force_rebuild)
+        if success:
+            print("\n🎉 벡터 DB 초기화가 완료되었습니다!")
+            print("이제 'python main.py'를 실행하여 웹 인터페이스를 사용할 수 있습니다.")
+        sys.exit(0 if success else 1)
+    elif args.test:
+        test_rag_system()
+    else:
+        # 기본적으로 테스트 실행
+        test_rag_system()

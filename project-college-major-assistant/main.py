@@ -63,6 +63,8 @@ class CollegeMajorAssistant:
             else:
                 if progress_callback:
                     progress_callback("기존 벡터 DB 로드 중...")
+
+                self.rag_system.initialize_llm_components()
                 self.rag_system.load_vector_store()
             
             self.is_initialized = True
@@ -151,9 +153,17 @@ def create_gradio_interface():
         final_status = "\n".join(progress_messages)
         
         if success:
-            return f"{final_status}\n✅ {message}", gr.update(interactive=True)
+            return (
+                f"{final_status}\n✅ {message}", 
+                gr.update(interactive=True), 
+                gr.update(interactive=True)
+            )
         else:
-            return f"{final_status}\n❌ {message}", gr.update(interactive=False)
+            return (
+                f"{final_status}\n❌ {message}", 
+                gr.update(interactive=False), 
+                gr.update(interactive=False)
+            )
     
     def process_question(question, history):
         """질문 처리 및 채팅 히스토리 업데이트"""
@@ -172,7 +182,6 @@ def create_gradio_interface():
     # Gradio 인터페이스 구성
     with gr.Blocks(
         title="🎓 고등학생 학과 선택 도우미",
-        theme=gr.themes.Soft(),
         css="""
         .gradio-container {max-width: 1000px !important}
         .chat-message {padding: 10px; border-radius: 10px; margin: 5px 0;}

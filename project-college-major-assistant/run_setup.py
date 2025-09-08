@@ -149,13 +149,73 @@ def test_rag_system():
         print(f"❌ RAG 시스템 테스트 실패: {e}")
         return False
 
+def initialize_vector_db(force_rebuild=False):
+    """벡터 DB 초기화"""
+    print("🚀 벡터 DB 초기화 중...")
+    
+    try:
+        from college_rag_system import initialize_database
+        
+        print(f"  🔄 강제 재구축: {'예' if force_rebuild else '아니오'}")
+        
+        success = initialize_database(force_rebuild=force_rebuild)
+        
+        if success:
+            print("✅ 벡터 DB 초기화 완료")
+            return True
+        else:
+            print("❌ 벡터 DB 초기화 실패")
+            return False
+            
+    except Exception as e:
+        print(f"❌ 벡터 DB 초기화 실패: {e}")
+        return False
+
 def main():
     """메인 설정 함수"""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="고등학생 학과 선택 도우미 - 환경 설정")
+    parser.add_argument("--init-db", action="store_true", 
+                       help="벡터 DB 초기화만 실행")
+    parser.add_argument("--force-rebuild", action="store_true",
+                       help="기존 DB 삭제 후 강제 재구축")
+    parser.add_argument("--setup-only", action="store_true",
+                       help="DB 초기화 없이 환경 설정만 실행")
+    
+    args = parser.parse_args()
+    
     print("🎓 고등학생 학과 선택 도우미 - 환경 설정")
     print("=" * 60)
     
+    # DB 초기화만 실행하는 경우
+    if args.init_db:
+        print("🚀 벡터 DB 초기화 모드")
+        print("-" * 40)
+        
+        # 기본 환경 확인
+        if not check_environment():
+            print("❌ 환경 설정 문제로 DB 초기화를 중단합니다.")
+            return False
+        
+        if not check_directories():
+            print("❌ 디렉토리 구조 문제로 DB 초기화를 중단합니다.")
+            return False
+            
+        # 벡터 DB 초기화 실행
+        success = initialize_vector_db(force_rebuild=args.force_rebuild)
+        
+        if success:
+            print("\n🎉 벡터 DB 초기화가 완료되었습니다!")
+            print("이제 'python main.py'를 실행하여 웹 인터페이스를 사용할 수 있습니다.")
+        else:
+            print("\n❌ 벡터 DB 초기화에 실패했습니다.")
+            
+        return success
+    
+    # 일반 설정 과정
     # 단계별 확인
-    steps = [
+    base_steps = [
         ("환경 설정 확인", check_environment),
         ("디렉토리 구조 확인", check_directories),
         ("의존성 설치", install_dependencies),
@@ -163,9 +223,13 @@ def main():
         ("RAG 시스템 테스트", test_rag_system)
     ]
     
+    # DB 초기화 단계 추가 (setup-only가 아닌 경우)
+    if not args.setup_only:
+        base_steps.append(("벡터 DB 초기화", lambda: initialize_vector_db(force_rebuild=args.force_rebuild)))
+    
     failed_steps = []
     
-    for step_name, step_func in steps:
+    for step_name, step_func in base_steps:
         print(f"\n📋 단계: {step_name}")
         print("-" * 40)
         
@@ -183,8 +247,12 @@ def main():
     if not failed_steps:
         print("🎉 모든 설정이 완료되었습니다!")
         print("\n다음 단계:")
-        print("1. python main.py - Gradio UI 실행")
-        print("2. python college_rag_system.py - RAG 시스템 직접 테스트")
+        if args.setup_only:
+            print("1. python run_setup.py --init-db - 벡터 DB 초기화")
+            print("2. python college_rag_system.py --init-db - 직접 DB 초기화")
+        else:
+            print("1. python main.py - Gradio UI 실행")
+            print("2. python college_rag_system.py --test - RAG 시스템 테스트")
         return True
     else:
         print(f"❌ 실패한 단계: {', '.join(failed_steps)}")
