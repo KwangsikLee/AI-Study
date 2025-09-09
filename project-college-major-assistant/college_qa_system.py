@@ -7,6 +7,7 @@ Version: 0.1.0
 """
 
 import json
+import sys
 from pathlib import Path
 from typing import Dict, Any
 
@@ -16,9 +17,17 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 
+# a_my_rag_module 추가
+sys.path.append(str(Path(__file__).parent.parent))
+from a_my_rag_module import VectorStoreManager
+
 
 class CollegeQASystem:
     """구축된 벡터 스토어를 사용한 질문답변 전담 클래스"""
+    
+    # 벡터 스토어 설정 상수
+    DEFAULT_INDEX_NAME = "college_guide"
+    DEFAULT_MODEL_KEY = "embedding-gemma"
     
     def __init__(self, vector_db_dir: str):
         self.vector_db_dir = Path(vector_db_dir)
@@ -30,6 +39,9 @@ class CollegeQASystem:
         # 벡터 스토어와 QA 체인
         self.vector_store = None
         self.qa_chain = None
+        
+        # VectorStoreManager
+        self.vector_manager = None
         
         # 프롬프트 템플릿
         self.setup_prompt_template()
@@ -75,6 +87,20 @@ class CollegeQASystem:
 답변:"""
         )
     
+    def initialize_vector_manager(self):
+        """VectorStoreManager 지연 초기화"""
+        if self.vector_manager is None:
+            import os
+            # 환경변수에서 HF API 토큰 가져오기 (있다면)
+            hf_token = os.getenv('HF_API_TOKEN') or os.getenv('HUGGINGFACE_API_TOKEN')
+            
+            # VectorStoreManager 초기화
+            self.vector_manager = VectorStoreManager(
+                embedding_model_key=self.DEFAULT_MODEL_KEY, 
+                save_directory=str(self.vector_db_dir),
+                hf_api_token=hf_token
+            )
+    
     def load_vector_store(self):
         """기존 벡터 스토어 로드"""
         try:
@@ -83,11 +109,23 @@ class CollegeQASystem:
             # LLM 구성요소 초기화
             self.initialize_llm_components()
             
-            self.vector_store = FAISS.load_local(
-                str(self.vector_db_dir),
-                embeddings=self.embeddings,
-                allow_dangerous_deserialization=True
+            # VectorStoreManager 초기화
+            self.initialize_vector_manager()
+            
+            # VectorStoreManager로 벡터 스토어 로드 시도
+            result, message = self.vector_manager.load_vector_store(
+                self.DEFAULT_INDEX_NAME, 
+                self.DEFAULT_MODEL_KEY
             )
+            
+            if result:
+                self.vector_store = self.vector_manager.current_vector_store
+                print(f"✅ VectorStoreManager로 벡터 스토어 로드 완료!")
+                print(f"   {message}")
+            else:
+                # VectorStoreManager 로드 실패 시 기존 방식으로 시도
+                print(f"⚠️ VectorStoreManager 로드 실패: {message}")
+                raise ValueError("벡터 스토어가 로드되지 않았습니다.")
             
             # QA 체인 설정
             self.setup_qa_chain()
@@ -97,11 +135,8 @@ class CollegeQASystem:
             if metadata_path.exists():
                 with open(metadata_path, 'r', encoding='utf-8') as f:
                     metadata = json.load(f)
-                print(f"✅ 벡터 스토어 로드 완료!")
                 print(f"   생성일: {metadata.get('created_at', 'Unknown')}")
                 print(f"   문서 수: {metadata.get('total_documents', 'Unknown')}")
-            else:
-                print("✅ 벡터 스토어 로드 완료!")
             
         except Exception as e:
             print(f"❌ 벡터 스토어 로드 실패: {e}")

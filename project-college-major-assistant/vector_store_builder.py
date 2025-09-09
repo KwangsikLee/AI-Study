@@ -17,32 +17,39 @@ import gc
 # LangChain imports
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # a_my_rag_module 추가
 sys.path.append(str(Path(__file__).parent.parent))
-from a_my_rag_module import PDFImageExtractor, KoreanOCR
+from a_my_rag_module import PDFImageExtractor, KoreanOCR, VectorStoreManager
 
 
 class VectorStoreBuilder:
     """PDF 처리 및 벡터 스토어 구축 전담 클래스"""
+    
+    # 벡터 스토어 설정 상수
+    DEFAULT_INDEX_NAME = "college_guide"
+    DEFAULT_MODEL_KEY = "embedding-gemma"
     
     def __init__(self, pdf_dir: str, temp_images_dir: str, vector_db_dir: str):
         self.pdf_dir = Path(pdf_dir)
         self.temp_images_dir = Path(temp_images_dir)
         self.vector_db_dir = Path(vector_db_dir)
         
+        # temp_texts 디렉토리 추가
+        self.temp_texts_dir = Path(temp_images_dir).parent / "temp_texts"
+        
         # 디렉토리 생성
         self.temp_images_dir.mkdir(exist_ok=True)
+        self.temp_texts_dir.mkdir(exist_ok=True)
         self.vector_db_dir.mkdir(exist_ok=True)
         
         # PDF 처리 구성 요소 초기화
         self.pdf_extractor = PDFImageExtractor(dpi=100, max_size=2048)
         self.ocr = KoreanOCR()
         
-        # 임베딩 모델 (필요시 지연 로딩)
-        self.embeddings = None
+        # VectorStoreManager 
+        self.vector_manager = None
 
         # 텍스트 분할기
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -67,21 +74,32 @@ class VectorStoreBuilder:
             import torch
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+            if torch.mps.is_available():
+                torch.mps.empty_cache()
         except ImportError:
             pass
     
-    def initialize_embedding_model(self):
-        """임베딩 모델 지연 초기화"""
-        if self.embeddings is None:
-            print("🔤 임베딩 모델 초기화 중...")
-            # 임베딩 모델
-            self.embeddings = OpenAIEmbeddings()
+    def initialize_vector_manager(self):
+        """Vector Manager 지연 초기화"""
+        if self.vector_manager ==  None:        
+            # 환경변수에서 HF API 토큰 가져오기 (있다면)
+            hf_token = os.getenv('HF_API_TOKEN') or os.getenv('HUGGINGFACE_API_TOKEN')
+            
+            # VectorStoreManager 초기화 (한국어 특화 모델 사용)
+            self.vector_manager = VectorStoreManager(
+                embedding_model_key=self.DEFAULT_MODEL_KEY, 
+                save_directory=str(self.vector_db_dir),
+                hf_api_token=hf_token
+            )
     
     def vector_store_exists(self) -> bool:
         """벡터 스토어가 이미 존재하는지 확인"""
-        faiss_index_path = self.vector_db_dir / "index.faiss"
-        faiss_pkl_path = self.vector_db_dir / "index.pkl"
-        return faiss_index_path.exists() and faiss_pkl_path.exists()
+        self.initialize_vector_manager()
+        if self.vector_manager:
+            # VectorStoreManager의 index_exists 메서드 사용
+            return self.vector_manager.index_exists(self.DEFAULT_INDEX_NAME, self.DEFAULT_MODEL_KEY)
+        else:
+            return False
     
     def build_vector_store(self, progress_callback: Optional[Callable] = None):
         """PDF 파일들을 처리하여 벡터 스토어 구축"""
@@ -109,6 +127,13 @@ class VectorStoreBuilder:
                     
                     print(f"\n📄 처리 중: {pdf_file.name}")
                     
+                    # PDF 파일명 (확장자 제외)
+                    pdf_filename = pdf_file.stem
+                    
+                    # PDF별 텍스트 폴더 생성
+                    pdf_text_dir = self.temp_texts_dir / pdf_filename
+                    pdf_text_dir.mkdir(exist_ok=True)
+                    
                     # 1. PDF에서 이미지 추출
                     image_paths = self.pdf_extractor.extract_images_from_pdf(
                         str(pdf_file),
@@ -125,18 +150,36 @@ class VectorStoreBuilder:
                         import time
                         time.sleep(2)  # 메모리 안정화 대기
                     
-                    # 2. OCR로 텍스트 추출
+                    # 2. OCR로 텍스트 추출 및 저장
                     pdf_texts = []
-                    for img_path in image_paths:
+                    for page_idx, img_path in enumerate(image_paths):
                         try:
                             text = self.ocr.extract_text(img_path)
                             if text.strip():  # 빈 텍스트가 아닌 경우만
-                                pdf_texts.append(text.strip())
+                                clean_text = text.strip()
+                                pdf_texts.append(clean_text)
+                                
+                                # 텍스트를 별도 파일로 저장
+                                text_filename = f"page_{page_idx + 1}.txt"
+                                text_file_path = pdf_text_dir / text_filename
+                                
+                                with open(text_file_path, 'w', encoding='utf-8') as f:
+                                    f.write(clean_text)
+                                    
                         except Exception as e:
                             print(f"    ⚠️ OCR 실패: {img_path} - {e}")
                             continue
                     
+                    # 전체 PDF 텍스트를 하나의 파일로도 저장
+                    if pdf_texts:
+                        full_text = "\n\n--- 페이지 구분 ---\n\n".join(pdf_texts)
+                        full_text_path = pdf_text_dir / f"{pdf_filename}_full_text.txt"
+                        
+                        with open(full_text_path, 'w', encoding='utf-8') as f:
+                            f.write(full_text)
+                    
                     print(f"  📝 추출된 텍스트 블록: {len(pdf_texts)}개")
+                    print(f"  💾 텍스트 파일 저장: {pdf_text_dir}")
                     
                     # 3. 텍스트를 Document 객체로 변환
                     for j, text in enumerate(pdf_texts):
@@ -173,48 +216,25 @@ class VectorStoreBuilder:
             if progress_callback:
                 progress_callback(f"벡터 임베딩 생성 중... ({len(all_documents)}개 문서)")
             
-            # 4. 임베딩 모델 초기화
-            self.initialize_embedding_model()
 
-            # 문서를 작은 배치로 나누어 처리 (메모리 절약)
-            batch_size = 50  # 한 번에 50개 문서씩
-            
-            if len(all_documents) <= batch_size:
-                # 문서가 적으면 한 번에 처리
-                self.vector_store = FAISS.from_documents(
+            # VectorStoreManager를 사용하여 벡터 스토어 생성
+            try:
+                self.initialize_vector_manager()
+                
+                print(f"   🤖 VectorStoreManager를 사용하여 벡터 스토어 생성 중...")
+                
+                # 5. 벡터 스토어 생성 및 자동 저장
+                self.vector_store = self.vector_manager.auto_save_after_creation(
                     documents=all_documents,
-                    embedding=self.embeddings
-                )
-            else:
-                # 배치로 나누어 처리
-                print(f"   📦 배치 처리: {batch_size}개씩")
-                
-                # 첫 번째 배치로 벡터 스토어 생성
-                first_batch = all_documents[:batch_size]
-                self.vector_store = FAISS.from_documents(
-                    documents=first_batch,
-                    embedding=self.embeddings
+                    index_name=self.DEFAULT_INDEX_NAME,
+                    model_key=self.DEFAULT_MODEL_KEY
                 )
                 
-                # 나머지 배치들을 추가
-                for i in range(batch_size, len(all_documents), batch_size):
-                    batch = all_documents[i:i + batch_size]
-                    batch_vector_store = FAISS.from_documents(
-                        documents=batch,
-                        embedding=self.embeddings
-                    )
-                    
-                    # 벡터 스토어 병합
-                    self.vector_store.merge_from(batch_vector_store)
-                    
-                    # 배치 처리 후 메모리 정리
-                    batch_vector_store = None
-                    gc.collect()
-                    
-                    print(f"   ✅ 배치 {i//batch_size + 1} 완료")
+                print(f"   ✅ VectorStoreManager로 벡터 스토어 생성 완료")
+                
+            except Exception as vector_manager_error:
+                print(f"   ⚠️ VectorStoreManager 실패: {vector_manager_error}")                
 
-            # 5. 벡터 스토어 저장
-            self.vector_store.save_local(str(self.vector_db_dir))
             
             # 6. 메타데이터 저장
             metadata = {
@@ -257,19 +277,22 @@ class VectorStoreBuilder:
                 
                 print("📁 기존 벡터 DB 발견 - 검증 시도...")
                 try:
-                    self.initialize_embedding_model()
-                    # 벡터 스토어 존재 확인만 수행
-                    _ = FAISS.load_local(
-                        str(self.vector_db_dir),
-                        embeddings=self.embeddings,
-                        allow_dangerous_deserialization=True
-                    )
+                    # VectorStoreManager를 먼저 시도
+                    self.initialize_vector_manager()
                     
-                    if progress_callback:
-                        progress_callback("✅ 기존 벡터 DB 검증 완료!")
+                    # VectorStoreManager로 저장된 인덱스 로드 시도
+                    result, message = self.vector_manager.load_vector_store(self.DEFAULT_INDEX_NAME, self.DEFAULT_MODEL_KEY)
                     
-                    print("✅ 기존 벡터 DB 검증 완료!")
-                    return True, "기존 벡터 DB 검증 완료."
+                    if result:
+                        self.vector_store = self.vector_manager.current_vector_store
+                        
+                        if progress_callback:
+                            progress_callback("✅ VectorStoreManager 벡터 DB 검증 완료!")
+                        
+                        print("✅ VectorStoreManager 벡터 DB 검증 완료!")
+                        return True, "VectorStoreManager 벡터 DB 검증 완료."
+                    else:
+                        print(f"   ⚠️ VectorStoreManager 로드 실패: {message}")
                 
                 except Exception as e:
                     if progress_callback:
@@ -285,11 +308,16 @@ class VectorStoreBuilder:
                         progress_callback("기존 벡터 DB 삭제 후 새로 구축...")
                     
                     print("🗑️ 기존 벡터 DB 삭제 후 새로 구축...")
-                    # 기존 벡터 DB 파일 삭제
-                    import shutil
-                    if self.vector_db_dir.exists():
-                        shutil.rmtree(self.vector_db_dir)
-                        self.vector_db_dir.mkdir(exist_ok=True)
+                    # VectorStoreManager의 delete_saved_index 메서드 사용
+                    if self.vector_manager:
+                        delete_result = self.vector_manager.delete_saved_index(self.DEFAULT_INDEX_NAME, self.DEFAULT_MODEL_KEY)
+                        print(f"   {delete_result}")
+                    else:
+                        # vector_manager가 없는 경우에만 수동 삭제
+                        import shutil
+                        if self.vector_db_dir.exists():
+                            shutil.rmtree(self.vector_db_dir)
+                            self.vector_db_dir.mkdir(exist_ok=True)
                 
                 if progress_callback:
                     progress_callback("새 벡터 DB 구축 시작...")

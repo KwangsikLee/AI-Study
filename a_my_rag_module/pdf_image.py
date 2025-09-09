@@ -45,6 +45,9 @@ class PDFImageExtractor:
         # 출력 디렉토리 생성
         os.makedirs(output_dir, exist_ok=True)
         
+        # PDF 파일명 추출 (확장자 제거)
+        pdf_filename = os.path.splitext(os.path.basename(pdf_path))[0]
+        
         # PDF 열기
         pdf_document = fitz.open(pdf_path)
         image_paths = []
@@ -66,11 +69,11 @@ class PDFImageExtractor:
             
             if should_split:
                 print(f"  📄 큰 페이지 감지 - 2개로 분할하여 추출")
-                split_images = self._extract_split_page(page, page_num, output_dir)
+                split_images = self._extract_split_page(page, page_num, output_dir, pdf_filename)
                 image_paths.extend(split_images)
             else:
                 # 일반 페이지 추출
-                image_path = self._extract_single_page(page, page_num, output_dir)
+                image_path = self._extract_single_page(page, page_num, output_dir, pdf_filename)
                 image_paths.append(image_path)
             
             page = None
@@ -79,7 +82,7 @@ class PDFImageExtractor:
         pdf_document = None
         return image_paths
     
-    def _extract_single_page(self, page, page_num: int, output_dir: str) -> str:
+    def _extract_single_page(self, page, page_num: int, output_dir: str, pdf_filename: str) -> str:
         """
         단일 페이지 이미지 추출
         
@@ -87,6 +90,7 @@ class PDFImageExtractor:
             page: PDF 페이지 객체
             page_num: 페이지 번호
             output_dir: 출력 디렉토리
+            pdf_filename: PDF 파일명 (확장자 제외)
             
         Returns:
             추출된 이미지 파일 경로
@@ -97,7 +101,7 @@ class PDFImageExtractor:
         
         # 이미지 크기
         width, height = pix.width, pix.height
-        optimized_path = os.path.join(output_dir, f"page_{page_num + 1}.png")
+        optimized_path = os.path.join(output_dir, f"{pdf_filename}_page_{page_num + 1}.png")
         
         # 이미지 저장
         pix.save(optimized_path)
@@ -110,7 +114,7 @@ class PDFImageExtractor:
         print(f"페이지 {page_num + 1} 추출 완료: {optimized_path}")
         return optimized_path
     
-    def _extract_split_page(self, page, page_num: int, output_dir: str) -> List[str]:
+    def _extract_split_page(self, page, page_num: int, output_dir: str, pdf_filename: str) -> List[str]:
         """
         큰 페이지를 2개로 분할하여 추출
         
@@ -118,6 +122,7 @@ class PDFImageExtractor:
             page: PDF 페이지 객체
             page_num: 페이지 번호
             output_dir: 출력 디렉토리
+            pdf_filename: PDF 파일명 (확장자 제외)
             
         Returns:
             분할된 이미지 파일 경로 리스트
@@ -136,12 +141,12 @@ class PDFImageExtractor:
             
             # 왼쪽 반쪽
             left_rect = fitz.Rect(0, 0, split_width, page_height)
-            left_image = self._extract_page_region(page, left_rect, page_num, "left", output_dir)
+            left_image = self._extract_page_region(page, left_rect, page_num, "left", output_dir, pdf_filename)
             split_images.append(left_image)
             
             # 오른쪽 반쪽
             right_rect = fitz.Rect(split_width, 0, page_width, page_height)
-            right_image = self._extract_page_region(page, right_rect, page_num, "right", output_dir)
+            right_image = self._extract_page_region(page, right_rect, page_num, "right", output_dir, pdf_filename)
             split_images.append(right_image)
             
             print(f"  ✂️  세로 분할: {page_width:.1f} x {page_height:.1f} → 2개 ({split_width:.1f} x {page_height:.1f} 각각)")
@@ -153,19 +158,19 @@ class PDFImageExtractor:
             
             # 위쪽 반쪽
             top_rect = fitz.Rect(0, 0, page_width, split_height)
-            top_image = self._extract_page_region(page, top_rect, page_num, "top", output_dir)
+            top_image = self._extract_page_region(page, top_rect, page_num, "top", output_dir, pdf_filename)
             split_images.append(top_image)
             
             # 아래쪽 반쪽
             bottom_rect = fitz.Rect(0, split_height, page_width, page_height)
-            bottom_image = self._extract_page_region(page, bottom_rect, page_num, "bottom", output_dir)
+            bottom_image = self._extract_page_region(page, bottom_rect, page_num, "bottom", output_dir, pdf_filename)
             split_images.append(bottom_image)
             
             print(f"  ✂️  가로 분할: {page_width:.1f} x {page_height:.1f} → 2개 ({page_width:.1f} x {split_height:.1f} 각각)")
         
         return split_images
     
-    def _extract_page_region(self, page, rect: fitz.Rect, page_num: int, region: str, output_dir: str) -> str:
+    def _extract_page_region(self, page, rect: fitz.Rect, page_num: int, region: str, output_dir: str, pdf_filename: str) -> str:
         """
         페이지의 특정 영역을 이미지로 추출
         
@@ -175,6 +180,7 @@ class PDFImageExtractor:
             page_num: 페이지 번호
             region: 영역 이름 (left, right, top, bottom)
             output_dir: 출력 디렉토리
+            pdf_filename: PDF 파일명 (확장자 제외)
             
         Returns:
             추출된 이미지 파일 경로
@@ -187,7 +193,7 @@ class PDFImageExtractor:
         
         # 이미지 크기
         width, height = pix.width, pix.height
-        optimized_path = os.path.join(output_dir, f"page_{page_num + 1}_{region}.png")
+        optimized_path = os.path.join(output_dir, f"{pdf_filename}_page_{page_num + 1}_{region}.png")
         
         # 이미지 저장
         pix.save(optimized_path)
