@@ -176,7 +176,7 @@ def create_gradio_interface():
     with gr.Blocks(
         title="🎓 고등학생 학과 선택 도우미",
         css="""
-        .gradio-container {max-width: 1000px !important}
+        .gradio-container {max-width: 2000px !important}
         .chat-message {padding: 10px; border-radius: 10px; margin: 5px 0;}
         .user-message {background-color: #e3f2fd;}
         .bot-message {background-color: #f5f5f5;}

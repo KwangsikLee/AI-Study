@@ -161,9 +161,9 @@ class VectorStoreBuilder:
         
         processed_pdfs = []
         
-        # 샘플로 처음 1개 파일만 처리 (MVP)
-        # sample_files = pdf_files[:1]
-        sample_files = [self.pdf_dir / "01-경영대학.pdf"]
+        # 샘플로 처음 5개 파일만 처리 (MVP)
+        sample_files = pdf_files[:5]
+        # sample_files = [self.pdf_dir / "01-경영대학.pdf"]
         
         for i, pdf_file in enumerate(sample_files):
             try:

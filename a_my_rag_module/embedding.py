@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import datetime
+import json
 import os
 import pickle
 # LangChain imports
@@ -244,6 +245,11 @@ class VectorStoreManager:
             metadata_path = os.path.join(self.save_directory, f"{index_name}_{model_key}_metadata.pkl")
             with open(metadata_path, 'wb') as f:
                 pickle.dump(metadata, f)
+            
+            # Debug용 JSON 파일로도 저장
+            json_metadata_path = os.path.join(self.save_directory, f"{index_name}_{model_key}_metadata_debug.json")
+            with open(json_metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2, default=str)
             
             return True, f"✅ 벡터 스토어 저장 완료: {index_path}"
             

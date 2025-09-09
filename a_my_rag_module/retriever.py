@@ -4,6 +4,8 @@ from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
 from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
+from langchain.schema.retriever import BaseRetriever
+from pydantic import Field, ConfigDict
 
 
 
@@ -112,9 +114,8 @@ class MyReranker:
 # =============================================================================
 
 class AdvancedHybridRetriever:
-    def __init__(self, documents: List[Document], vector_store: FAISS,
+    def __init__(self, documents: List[Document] = None, vector_store: FAISS = None,
                  reranker: MyReranker = None, reranker_model: str = "cross-encoder-ms-marco"):
-        self.documents = documents
         self.vector_store = vector_store
         self.reranker = reranker or MyReranker()
 
@@ -122,17 +123,16 @@ class AdvancedHybridRetriever:
         if reranker_model != "none":
             self.reranker.load_reranker(reranker_model)
 
+        # 문서 추출: documents가 없으면 vector_store에서 추출
+        if documents is not None:
+            self.documents = documents
+        elif vector_store is not None:
+            self.documents = self._extract_documents_from_vector_store(vector_store)
+        else:
+            raise ValueError("documents 또는 vector_store 중 하나는 반드시 제공되어야 합니다.")
+
         # BM25 검색기 생성
-        try:
-            texts = [doc.page_content for doc in documents]
-            self.bm25_retriever = BM25Retriever.from_texts(
-                texts,
-                metadatas=[doc.metadata for doc in documents]
-            )
-            self.bm25_retriever.k = 15  # rerank를 위해 더 많이 가져옴
-        except Exception as e:
-            print(f"BM25 검색기 생성 오류: {e}")
-            self.bm25_retriever = None
+        self._create_bm25_retriever()
 
         # 벡터 검색기
         self.vector_retriever = vector_store.as_retriever(
@@ -147,6 +147,55 @@ class AdvancedHybridRetriever:
             )
         else:
             self.ensemble_retriever = self.vector_retriever
+
+    def _extract_documents_from_vector_store(self, vector_store: FAISS) -> List[Document]:
+        """FAISS 벡터 스토어에서 문서들을 추출"""
+        documents = []
+        try:
+            # FAISS 벡터 스토어의 docstore에서 문서 추출
+            if hasattr(vector_store, 'docstore') and hasattr(vector_store, 'index_to_docstore_id'):
+                print(f"벡터 스토어에서 {len(vector_store.index_to_docstore_id)}개 문서 추출 중...")
+                
+                for i, doc_id in enumerate(vector_store.index_to_docstore_id.values()):
+                    try:
+                        doc = vector_store.docstore.search(doc_id)
+                        if doc:
+                            documents.append(doc)
+                    except Exception as e:
+                        print(f"문서 {i} 추출 실패: {e}")
+                        continue
+                        
+                print(f"✅ 벡터 스토어에서 {len(documents)}개 문서 추출 완료")
+                
+            else:
+                print("⚠️ 벡터 스토어에서 docstore를 찾을 수 없습니다.")
+                
+        except Exception as e:
+            print(f"❌ 벡터 스토어에서 문서 추출 실패: {e}")
+            
+        return documents
+    
+    def _create_bm25_retriever(self):
+        """BM25 검색기 생성"""
+        try:
+            if not self.documents:
+                print("⚠️ 문서가 없어서 BM25 검색기를 생성할 수 없습니다.")
+                self.bm25_retriever = None
+                return
+                
+            texts = [doc.page_content for doc in self.documents]
+            metadatas = [doc.metadata for doc in self.documents]
+            
+            self.bm25_retriever = BM25Retriever.from_texts(
+                texts,
+                metadatas=metadatas
+            )
+            self.bm25_retriever.k = 15  # rerank를 위해 더 많이 가져옴
+            print(f"✅ BM25 검색기 생성 완료 ({len(texts)}개 문서)")
+            
+        except Exception as e:
+            print(f"❌ BM25 검색기 생성 오류: {e}")
+            self.bm25_retriever = None
 
     def search_by_similarity(self, query: str, k: int = 5, use_rerank: bool = True) -> List[Document]:
         """유사도 기반 검색 + Rerank"""
@@ -225,7 +274,64 @@ class AdvancedHybridRetriever:
         else:
             self.reranker.load_reranker(reranker_model)
             return f"🔄 Reranker 변경 완료: {self.reranker.get_current_reranker_info()}"
+
+
+# =============================================================================
+# LangChain 호환 Wrapper 클래스
+# =============================================================================
+
+class HybridRetrieverWrapper(BaseRetriever):
+    """AdvancedHybridRetriever를 내부에서 생성하여 LangChain과 호환되도록 하는 래퍼 클래스"""
+    
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra='allow')
+    
+    vector_store: Any = Field(description="FAISS vector store instance")
+    reranker_model: str = Field(default="cross-encoder-ms-marco", description="Reranker model name")
+    
+    def __init__(self, vector_store: FAISS, reranker_model: str = "cross-encoder-ms-marco", **kwargs):
+        super().__init__(
+            vector_store=vector_store, 
+            reranker_model=reranker_model, 
+            **kwargs
+        )
         
+        # AdvancedHybridRetriever를 일반 인스턴스 속성으로 생성
+        print("🔧 HybridRetrieverWrapper에서 AdvancedHybridRetriever 생성 중...")
+        reranker = MyReranker()
+        self.hybrid_retriever = AdvancedHybridRetriever(
+            vector_store=vector_store,
+            reranker=reranker,
+            reranker_model=reranker_model
+        )
+        print("✅ HybridRetrieverWrapper 초기화 완료")
+    
+    def _get_relevant_documents(self, query: str, *, run_manager=None) -> List[Document]:
+        """LangChain BaseRetriever의 필수 메소드 구현"""
+        # hybrid_search 메소드 사용 (상위 3개 문서 검색, reranking 적용)
+        return self.hybrid_retriever.hybrid_search(
+            query=query, 
+            k=3, 
+            use_rerank=True
+        )
+    
+    def switch_reranker(self, reranker_model: str) -> str:
+        """Reranker 모델 변경"""
+        if self.hybrid_retriever:
+            return self.hybrid_retriever.switch_reranker(reranker_model)
+        return "❌ HybridRetriever가 초기화되지 않았습니다."
+    
+    def get_retriever_info(self) -> str:
+        """현재 검색기 정보 반환"""
+        if self.hybrid_retriever:
+            info = ["📊 HybridRetrieverWrapper 정보"]
+            info.append(f"   문서 수: {len(self.hybrid_retriever.documents) if self.hybrid_retriever.documents else 0}개")
+            info.append(f"   BM25 검색기: {'활성화' if self.hybrid_retriever.bm25_retriever else '비활성화'}")
+            info.append(f"   벡터 검색기: 활성화")
+            if self.hybrid_retriever.reranker:
+                info.append(f"   {self.hybrid_retriever.reranker.get_current_reranker_info()}")
+            return "\n".join(info)
+        return "❌ HybridRetriever가 초기화되지 않았습니다."
+
 
 if __name__ == "__main__":
     import sys

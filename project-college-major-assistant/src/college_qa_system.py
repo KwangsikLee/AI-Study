@@ -22,6 +22,7 @@ from langchain.prompts import PromptTemplate
 # 목표 경로: /AI-Study/a_my_rag_module
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from a_my_rag_module import VectorStoreManager
+from a_my_rag_module.retriever import HybridRetrieverWrapper
 
 
 class CollegeQASystem:
@@ -43,6 +44,9 @@ class CollegeQASystem:
         
         # VectorStoreManager
         self.vector_manager = None
+        
+        # HybridRetrieverWrapper
+        self.hybrid_retriever_wrapper = None
         
         # 프롬프트 템플릿
         self.setup_prompt_template()
@@ -79,8 +83,9 @@ class CollegeQASystem:
 1. 고등학생이 이해하기 쉬운 언어로 설명해주세요
 2. 구체적이고 실용적인 정보를 제공해주세요  
 3. 장황하지 않게 표현해주세요
-4. 참고 자료에 없는 내용은 참고자료에 없다고 표시하고 일반적인 정보로 보완해주세요
-5. 친근하고 격려하는 톤으로 답변해주세요
+4. 친근하고 격려하는 톤으로 답변해주세요
+5. 답변은 오직 참고자료에 있는 내용에 한해서만 해야 한다.
+5. 참고 자료에 없는 내용은 정보가 없어 답변못해 미안하다고 하고 끝낸다
 6. 참고 자료에 있는 답변은 근거를 표시해주세요.
 답변:"""
         )
@@ -120,6 +125,9 @@ class CollegeQASystem:
                 self.vector_store = self.vector_manager.current_vector_store
                 print(f"✅ VectorStoreManager로 벡터 스토어 로드 완료!")
                 print(f"   {message}")
+                
+                # HybridRetrieverWrapper 초기화
+                self.setup_hybrid_retriever()
             else:
                 # VectorStoreManager 로드 실패 시 기존 방식으로 시도
                 print(f"⚠️ VectorStoreManager 로드 실패: {message}")
@@ -140,15 +148,26 @@ class CollegeQASystem:
             print(f"❌ 벡터 스토어 로드 실패: {e}")
             raise
     
+    def setup_hybrid_retriever(self):
+        """HybridRetrieverWrapper 설정"""
+        try:
+            self.hybrid_retriever_wrapper = HybridRetrieverWrapper(
+                vector_store=self.vector_store,
+                reranker_model="cross-encoder-ms-marco"
+            )
+        except Exception as e:
+            print(f"⚠️ HybridRetrieverWrapper 설정 실패: {e}")
+            print("   기본 벡터 검색기를 사용합니다.")
+            self.hybrid_retriever_wrapper = None
+    
     def setup_qa_chain(self):
         """QA 체인 설정"""
         if self.vector_store is None:
             raise ValueError("벡터 스토어가 초기화되지 않았습니다.")
         
-        # 리트리버 설정 (상위 3개 문서 검색)
-        retriever = self.vector_store.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": 3}
+        # 리트리버 선택
+        retriever = self.hybrid_retriever_wrapper or self.vector_store.as_retriever(
+            search_type="similarity", search_kwargs={"k": 3}
         )
         
         # QA 체인 생성
@@ -156,13 +175,12 @@ class CollegeQASystem:
             llm=self.llm,
             chain_type="stuff",
             retriever=retriever,
-            chain_type_kwargs={
-                "prompt": self.prompt_template
-            },
+            chain_type_kwargs={"prompt": self.prompt_template},
             return_source_documents=True
         )
         
-        print("✅ QA 체인 설정 완료")
+        retriever_name = "HybridRetrieverWrapper" if self.hybrid_retriever_wrapper else "기본 벡터 검색기"
+        print(f"✅ QA 체인 설정 완료 ({retriever_name})")
     
     def query(self, question: str) -> Dict[str, Any]:
         """질문에 대한 답변 생성"""
@@ -180,7 +198,8 @@ class CollegeQASystem:
             source_docs = result.get("source_documents", [])
             
             # 검색된 context 로그 출력
-            print(f"\n📖 Retriever가 검색한 Context 정보:")
+            retriever_type = "HybridRetrieverWrapper (Hybrid + Reranking)" if self.hybrid_retriever_wrapper else "기본 벡터 검색기"
+            print(f"\n📖 {retriever_type}가 검색한 Context 정보:")
             print("=" * 80)
             for i, doc in enumerate(source_docs):
                 metadata = doc.metadata
@@ -219,3 +238,17 @@ class CollegeQASystem:
                 "sources": [],
                 "source_documents": []
             }
+    
+    def switch_reranker(self, reranker_model: str = "cross-encoder-ms-marco") -> str:
+        """Reranker 모델 변경"""
+        if not self.hybrid_retriever_wrapper:
+            return "⚠️ HybridRetrieverWrapper가 초기화되지 않았습니다."
+        
+        return self.hybrid_retriever_wrapper.switch_reranker(reranker_model)
+    
+    def get_retriever_info(self) -> str:
+        """현재 검색기 정보 반환"""
+        if not self.hybrid_retriever_wrapper:
+            return "📊 현재 검색기: 기본 벡터 검색기"
+        
+        return self.hybrid_retriever_wrapper.get_retriever_info()
