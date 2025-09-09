@@ -19,8 +19,10 @@ from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-# a_my_rag_module 추가
-sys.path.append(str(Path(__file__).parent.parent))
+# a_my_rag_module 모듈을 import하기 위한 경로 설정
+# 현재 파일: /project-college-major-assistant/src/vector_store_builder.py
+# 목표 경로: /AI-Study/a_my_rag_module
+sys.path.append(str(Path(__file__).parent.parent.parent))
 from a_my_rag_module import PDFImageExtractor, KoreanOCR, VectorStoreManager
 
 

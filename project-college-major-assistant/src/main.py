@@ -14,7 +14,9 @@ import gradio as gr
 from dotenv import load_dotenv
 
 # a_my_rag_module 모듈을 import하기 위한 경로 설정
-sys.path.append(str(Path(__file__).parent.parent))
+# 현재 파일: /project-college-major-assistant/src/main.py
+# 목표 경로: /AI-Study/a_my_rag_module
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from a_my_rag_module import PDFImageExtractor, KoreanOCR, MultiEmbeddingManager, VectorStoreManager
 from college_rag_system import CollegeRAGSystem
@@ -32,10 +34,11 @@ class CollegeMajorAssistant:
         
     def setup_paths(self):
         """경로 설정"""
-        self.base_dir = Path(__file__).parent
-        self.pdf_dir = self.base_dir / "korea_univ_guides"
-        self.temp_images_dir = self.base_dir / "temp_images"
-        self.vector_db_dir = self.base_dir / "vector_db"
+        # 프로젝트 루트 디렉토리 (src의 상위 디렉토리)
+        self.project_root = Path(__file__).parent.parent
+        self.pdf_dir = self.project_root / "korea_univ_guides"
+        self.temp_images_dir = self.project_root / "temp_images"
+        self.vector_db_dir = self.project_root / "vector_db"
         
         # 디렉토리 생성
         self.temp_images_dir.mkdir(exist_ok=True)
@@ -112,28 +115,19 @@ class CollegeMajorAssistant:
         pdf_count = len(list(self.pdf_dir.glob("*.pdf"))) if self.pdf_dir.exists() else 0
         
         info = f"""
-## 🎓 고등학생 학과 선택 도우미
+                ### 시스템 정보
+                - **버전**: v0.1.0 (MVP)
 
-### 시스템 정보
-- **PDF 파일 수**: {pdf_count}개
-- **초기화 상태**: {'✅ 완료' if self.is_initialized else '❌ 미완료'}
-- **버전**: v0.1.0 (MVP)
+                ### 기능 소개
+                1. **대학교 학과 안내 자료 기반 상담**
+                2. **AI 기반 질의응답 시스템**
+                3. **개인 맞춤형 전공 추천**
 
-### 기능 소개
-1. **대학교 학과 안내 자료 기반 상담**
-2. **AI 기반 질의응답 시스템**
-3. **개인 맞춤형 전공 추천**
-
-### 사용법
-1. '시스템 초기화' 버튼을 클릭하여 시스템을 준비합니다.
-2. 전공, 진로, 대학생활에 관한 질문을 입력하세요.
-3. AI가 대학 안내 자료를 바탕으로 답변해드립니다.
-
-### 질문 예시
-- "컴퓨터공학과는 어떤 공부를 하나요?"
-- "의대 입학을 위해 어떤 준비가 필요한가요?"
-- "경영학과의 취업 전망은 어떤가요?"
-"""
+                ### 사용법
+                1. '시스템 초기화' 버튼을 클릭하여 시스템을 준비합니다.
+                2. 전공, 진로, 대학생활에 관한 질문을 입력하세요.
+                3. AI가 대학 안내 자료를 바탕으로 답변해드립니다.
+                """
         return info
 
 def create_gradio_interface():

@@ -62,11 +62,11 @@ def initialize_database(force_rebuild: bool = False):
     print("🚀 벡터 DB 초기화 시작")
     print("=" * 50)
     
-    # 경로 설정
-    base_dir = Path(__file__).parent
-    pdf_dir = base_dir / "korea_univ_guides"
-    temp_images_dir = base_dir / "temp_images"
-    vector_db_dir = base_dir / "vector_db"
+    # 경로 설정 - 프로젝트 루트 디렉토리 기준
+    project_root = Path(__file__).parent.parent
+    pdf_dir = project_root / "korea_univ_guides"
+    temp_images_dir = project_root / "temp_images"
+    vector_db_dir = project_root / "vector_db"
     
     # PDF 파일 확인
     pdf_files = list(pdf_dir.glob("*.pdf"))
@@ -118,11 +118,11 @@ def test_rag_system():
     """RAG 시스템 테스트"""
     print("🧪 RAG 시스템 테스트 시작")
     
-    # 경로 설정
-    base_dir = Path(__file__).parent
-    pdf_dir = base_dir / "korea_univ_guides"
-    temp_images_dir = base_dir / "temp_images"  
-    vector_db_dir = base_dir / "vector_db"
+    # 경로 설정 - 프로젝트 루트 디렉토리 기준
+    project_root = Path(__file__).parent.parent
+    pdf_dir = project_root / "korea_univ_guides"
+    temp_images_dir = project_root / "temp_images"  
+    vector_db_dir = project_root / "vector_db"
     
     # RAG 시스템 초기화
     rag_system = CollegeRAGSystem(

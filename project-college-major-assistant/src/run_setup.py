@@ -107,7 +107,9 @@ def test_modules():
         print(f"  ✅ LangChain")
         
         # a_my_rag_module 모듈 테스트
-        sys.path.append(str(Path(__file__).parent.parent))
+        # 현재 파일: /project-college-major-assistant/src/run_setup.py  
+        # 목표 경로: /AI-Study/a_my_rag_module
+        sys.path.append(str(Path(__file__).parent.parent.parent))
         from a_my_rag_module import PDFImageExtractor, KoreanOCR
         print(f"  ✅ a_my_rag_module")
         
@@ -125,11 +127,11 @@ def test_rag_system():
     try:
         from college_rag_system import CollegeRAGSystem
         
-        # 경로 설정
-        base_dir = Path(__file__).parent
-        pdf_dir = base_dir / "korea_univ_guides"
-        temp_images_dir = base_dir / "temp_images"
-        vector_db_dir = base_dir / "vector_db"
+        # 경로 설정 - 프로젝트 루트 디렉토리 기준
+        project_root = Path(__file__).parent.parent
+        pdf_dir = project_root / "korea_univ_guides"
+        temp_images_dir = project_root / "temp_images"
+        vector_db_dir = project_root / "vector_db"
         
         # RAG 시스템 초기화
         rag_system = CollegeRAGSystem(
