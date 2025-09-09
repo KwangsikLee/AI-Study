@@ -48,6 +48,12 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
     Qwen/Qwen2.5-3B-Instruct 모델을 LoRA 기반 fine-tuning  
     fine_tuned model : Adapter layer 저장. 
 
+### [Fine Tuning](lectFineTuning/)
+- [기본 fine-turing](lectFineTuning/01_fine_tun_ex1.ipynb) 
+- [Lora-PEFT fine-turing](lectFineTuning/03_fine_tun_ex3.ipynb) 
+- [CNN 감정분석 모델 생성](lectFineTuning/04_fine_tun_ex4.ipynb) 
+- [CNN 감정분석 모델 생성](lectFineTuning/07_fine_tun_ex7.ipynb) 
+
 ### [LangGraph](lectLangGraph/)
 
 - [Plan & Excute Agent](lectLangSmith/08_LangGraph_Plan_and_Execute.ipynb) 
