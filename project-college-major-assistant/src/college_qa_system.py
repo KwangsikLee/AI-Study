@@ -36,7 +36,6 @@ class CollegeQASystem:
         
         # LLM 설정 (필요시 지연 로딩)
         self.llm = None
-        self.embeddings = None
         
         # 벡터 스토어와 QA 체인
         self.vector_store = None
@@ -62,9 +61,6 @@ class CollegeQASystem:
                 temperature=0.2,
                 max_tokens=800
             )
-            
-            # 임베딩 모델
-            self.embeddings = OpenAIEmbeddings()
     
     def setup_prompt_template(self):
         """프롬프트 템플릿 설정"""
@@ -82,10 +78,10 @@ class CollegeQASystem:
 답변 시 다음 사항을 고려해주세요:
 1. 고등학생이 이해하기 쉬운 언어로 설명해주세요
 2. 구체적이고 실용적인 정보를 제공해주세요  
-3. 진로와 관련된 조언을 포함해주세요
-4. 참고 자료에 없는 내용은 일반적인 정보로 보완해주세요
+3. 장황하지 않게 표현해주세요
+4. 참고 자료에 없는 내용은 참고자료에 없다고 표시하고 일반적인 정보로 보완해주세요
 5. 친근하고 격려하는 톤으로 답변해주세요
-6. 참고 자료에 있는 답변과 없는 답변을 구분해서 표현해주세요
+6. 참고 자료에 있는 답변은 근거를 표시해주세요.
 답변:"""
         )
     
@@ -94,7 +90,7 @@ class CollegeQASystem:
         if self.vector_manager is None:
             import os
             # 환경변수에서 HF API 토큰 가져오기 (있다면)
-            hf_token = os.getenv('HF_API_TOKEN') or os.getenv('HUGGINGFACE_API_TOKEN')
+            hf_token = os.getenv('HF_API_TOKEN') or os.getenv('HUGGINGFACEHUB_API_TOKEN')
             
             # VectorStoreManager 초기화
             self.vector_manager = VectorStoreManager(
@@ -182,6 +178,19 @@ class CollegeQASystem:
             # 답변 추출
             answer = result.get("result", "답변을 생성할 수 없습니다.")
             source_docs = result.get("source_documents", [])
+            
+            # 검색된 context 로그 출력
+            print(f"\n📖 Retriever가 검색한 Context 정보:")
+            print("=" * 80)
+            for i, doc in enumerate(source_docs):
+                metadata = doc.metadata
+                content = doc.page_content
+                print(f"[Context {i+1}]")
+                print(f"출처: {metadata.get('source', 'Unknown')} (페이지 {metadata.get('page', '?')})")
+                print(f"내용 길이: {len(content)} 글자")
+                print(f"내용 미리보기: {content[:200]}..." if len(content) > 200 else f"전체 내용: {content}")
+                print("-" * 40)
+            print("=" * 80)
             
             # 소스 정보 생성
             sources = []

@@ -147,15 +147,15 @@ def create_gradio_interface():
         
         if success:
             return (
-                f"{final_status}\n✅ {message}", 
-                gr.update(interactive=True), 
-                gr.update(interactive=True)
+                f"{final_status}\n✅ {message}",    # init_status
+                gr.update(interactive=True),         # question_input  
+                gr.update(interactive=True)          # ask_btn
             )
         else:
             return (
-                f"{final_status}\n❌ {message}", 
-                gr.update(interactive=False), 
-                gr.update(interactive=False)
+                f"{final_status}\n❌ {message}",     # init_status
+                gr.update(interactive=False),        # question_input
+                gr.update(interactive=False)         # ask_btn
             )
     
     def process_question(question, history):
@@ -170,7 +170,7 @@ def create_gradio_interface():
         # 히스토리에 추가
         history.append([question, full_response])
         
-        return history, ""  # 채팅창 업데이트, 입력창 초기화
+        return history, gr.update(value="", interactive=True)  # 채팅창 업데이트, 입력창 초기화 및 활성화 유지
     
     # Gradio 인터페이스 구성
     with gr.Blocks(
@@ -212,7 +212,7 @@ def create_gradio_interface():
                         label="질문 입력",
                         placeholder="전공, 진로, 대학생활에 대해 궁금한 점을 질문하세요...",
                         lines=2,
-                        interactive=False  # 초기에는 비활성화
+                        interactive=True  # 초기에는 비활성화
                     )
                     ask_btn = gr.Button("📝 질문하기", variant="secondary", interactive=False)
                 
@@ -231,9 +231,6 @@ def create_gradio_interface():
         init_btn.click(
             fn=init_system_with_progress,
             outputs=[init_status, question_input, ask_btn]
-        ).then(
-            fn=lambda: gr.update(interactive=True),
-            outputs=[ask_btn]
         )
         
         # 질문 처리 (Enter 키 또는 버튼 클릭)
