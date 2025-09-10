@@ -152,8 +152,7 @@ class CollegeQASystem:
         """HybridRetrieverWrapper 설정"""
         try:
             self.hybrid_retriever_wrapper = HybridRetrieverWrapper(
-                vector_store=self.vector_store,
-                reranker_model="cross-encoder-ms-marco"
+                vector_store=self.vector_store
             )
         except Exception as e:
             print(f"⚠️ HybridRetrieverWrapper 설정 실패: {e}")
@@ -239,7 +238,7 @@ class CollegeQASystem:
                 "source_documents": []
             }
     
-    def switch_reranker(self, reranker_model: str = "cross-encoder-ms-marco") -> str:
+    def switch_reranker(self, reranker_model: str) -> str:
         """Reranker 모델 변경"""
         if not self.hybrid_retriever_wrapper:
             return "⚠️ HybridRetrieverWrapper가 초기화되지 않았습니다."
