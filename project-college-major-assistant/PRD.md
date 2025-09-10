@@ -31,9 +31,10 @@
 - **검색**: 유사도 기반 정보 검색
 
 ### 5. RAG 시스템
-- **LangSmith**: 성능 모니터링
-- **LangGraph**: 워크플로우 관리
+- **Hybrid Retriever**: Dense + Sparse 검색 통합
+- **LangChain**: RAG 파이프라인 오케스트레이션
 - **기능**: 질문에 대한 맥락적 답변 생성
+- **성능**: 향상된 검색 정확도 및 응답 품질
 
 ### 6. 챗봇 기능
 - **대화형 인터페이스**: 전공에 대한 자유로운 질문 가능
@@ -47,10 +48,11 @@
 
 ### Backend
 - **Python**: 메인 개발 언어
-- **LangChain/LangGraph**: RAG 시스템 구축
-- **LangSmith**: 모니터링 및 평가
-- **Vector DB**: 임베딩 저장 (ChromaDB/Pinecone)
-- **OCR**: Tesseract/EasyOCR
+- **LangChain**: RAG 시스템 구축 및 오케스트레이션
+- **FAISS**: 벡터 유사도 검색 엔진
+- **OpenAI**: GPT-4o-mini 및 text-embedding-ada-002
+- **OCR**: PaddleOCR + EasyOCR (한국어 최적화)
+- **Hybrid Retriever**: a_my_rag_module 통합
 
 ### Frontend
 - **Gradio**: 웹 인터페이스
@@ -63,20 +65,21 @@
 
 ## MVP 구현 범위
 
-### Phase 1: 핵심 RAG 시스템
-1. PDF 이미지 추출 및 OCR
-2. 기본 벡터 임베딩 및 DB 구축
-3. 단순 질의응답 기능
+### Phase 1: 핵심 RAG 시스템 (완료)
+1. PDF 이미지 추출 및 OCR (한국어 최적화)
+2. FAISS 벡터 임베딩 및 DB 구축
+3. 기본 질의응답 기능 및 Gradio UI
 
-### Phase 2: 고도화
+### Phase 2: 시스템 고도화 (완료)
+1. 아키텍처 리팩토링 및 모듈 분리
+2. Hybrid Retriever 통합 (Dense + Sparse 검색)
+3. 성능 최적화 및 에러 핸들링 강화
+
+### Phase 3: 고급 기능 및 최적화 (계획)
 1. LangGraph 워크플로우 적용
 2. LangSmith 모니터링 연동
-3. Gradio UI 구현
-
-### Phase 3: 개선 및 최적화
-1. 성능 최적화
-2. 사용자 경험 개선
-3. 추가 기능 구현
+3. 사용자 경험 및 UI/UX 개선
+4. 추가 기능 (개인화, 멀티턴 대화 등)
 
 ## 성공 지표
 
@@ -101,13 +104,22 @@
 
 ## 타임라인
 
-- **Week 1-2**: 핵심 RAG 시스템 구축
-- **Week 3**: LangGraph/LangSmith 연동
-- **Week 4**: Gradio UI 구현 및 테스트
-- **Week 5**: 최적화 및 배포 준비
+- **Week 1-2**: 핵심 RAG 시스템 구축 (완료)
+- **Week 3**: 시스템 고도화 및 리팩토링 (완료)
+- **Week 4**: Hybrid Retriever 통합 및 성능 최적화 (완료)
+- **Week 5+**: LangGraph/LangSmith 연동 및 최종 최적화 (계획)
+
+## 현재 상태 및 성과
+
+- **Phase 1-2 완료**: 핵심 RAG 시스템 및 시스템 고도화 완료
+- **Hybrid Retriever**: Dense + Sparse 검색 통합으로 검색 성능 향상
+- **대규모 데이터**: 64개 PDF 파일 처리 지원
+- **안정성**: 에러 핸들링 및 시스템 안정성 강화
+- **한국어 최적화**: 한국어 OCR 및 생성 모델 특화
 
 ## 참고사항
 
-- 기존 a_my_rag_module 코드 최대한 재활용
-- MVP 방식으로 점진적 개발
+- a_my_rag_module 기반 모듈화 아키텍처
+- MVP 방식 점진적 개발 완료
 - 한국어 처리에 특화된 모델 및 라이브러리 활용
+- 사용자 경험 및 성능 중심 설계

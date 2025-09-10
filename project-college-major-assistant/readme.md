@@ -5,9 +5,10 @@ AI 기반 대학교 전공 선택 상담 시스템입니다. 대학교 학과 �
 ## 📋 프로젝트 개요
 
 - **목표**: 고등학생의 전공 선택 고민 해결 지원
-- **기술**: RAG + LangChain + OpenAI + Gradio
+- **기술**: RAG + LangChain + OpenAI + FAISS + Gradio
 - **데이터**: 대학교 학과 안내 PDF 자료 (64개 파일)
 - **UI**: 웹 기반 채팅 인터페이스
+- **검색**: Hybrid Retriever (Dense + Sparse 검색)
 
 ## 🏗️ 시스템 아키텍처
 
@@ -49,15 +50,15 @@ OPENAI_API_KEY=your_openai_api_key_here
 ### 3. 자동 설정 실행
 
 ```bash
-# 전체 환경 설정 (의존성 설치 + 테스트)
-python run_setup.py
+# 전체 환경 설정 (의존성 설치 + 벡터 DB 구축)
+python src/run_setup.py
 ```
 
 ### 4. 애플리케이션 실행
 
 ```bash
 # Gradio 웹 UI 실행
-python main.py
+python src/main.py
 ```
 
 브라우저에서 `http://localhost:7860` 접속하여 사용하세요.
@@ -67,13 +68,17 @@ python main.py
 ```
 project-college-major-assistant/
 │
-├── 📄 main.py                    # Gradio UI 메인 애플리케이션
-├── 🤖 college_rag_system.py      # RAG 시스템 핵심 로직
-├── ⚙️ run_setup.py               # 환경 설정 및 테스트 스크립트
+├── src/                          # 소스 코드 디렉토리
+│   ├── 📄 main.py                # Gradio UI 메인 애플리케이션
+│   ├── 🤖 college_rag_system.py  # RAG 시스템 통합 래퍼
+│   ├── 📊 college_qa_system.py   # QA 시스템 핵심 로직
+│   ├── 🏗️ vector_store_builder.py # 벡터 스토어 빌더
+│   └── ⚙️ run_setup.py           # 환경 설정 및 테스트 스크립트
 │
 ├── 📋 PRD.md                     # 제품 요구사항 정의서
 ├── 📊 progress.md                # 개발 진행상황 추적
 ├── 📝 README.md                  # 프로젝트 설명서 (현재 파일)
+├── 🔍 CLAUDE.md                  # Claude Code 작업 지침
 │
 ├── 🔧 requirements.txt           # Python 의존성 패키지 목록
 ├── 🌍 .env.example               # 환경 변수 템플릿
@@ -81,6 +86,7 @@ project-college-major-assistant/
 │
 ├── 📚 korea_univ_guides/         # 대학교 학과 안내 PDF 파일들 (64개)
 ├── 🖼️ temp_images/               # PDF에서 추출한 임시 이미지 파일들
+├── 📄 temp_texts/                # 임시 텍스트 파일들
 └── 💾 vector_db/                 # FAISS 벡터 데이터베이스 저장소
 ```
 
@@ -92,10 +98,10 @@ project-college-major-assistant/
 - **텍스트 정제**: 한국어 특화 전처리 및 오류 보정
 
 ### 2. RAG 시스템
-- **벡터 임베딩**: OpenAI Embeddings
+- **벡터 임베딩**: OpenAI text-embedding-ada-002
 - **벡터 저장소**: FAISS (Facebook AI Similarity Search)
-- **검색**: 유사도 기반 상위 3개 문서 검색
-- **생성**: OpenAI GPT-3.5-turbo로 맥락 기반 답변
+- **검색**: Hybrid Retriever (Dense + Sparse 검색) 기반 상위 3개 문서
+- **생성**: OpenAI GPT-4o-mini로 맥락 기반 답변 생성
 
 ### 3. 사용자 인터페이스
 - **웹 UI**: Gradio 기반 채팅 인터페이스
@@ -134,10 +140,13 @@ pip install -r requirements.txt
 
 ```bash
 # RAG 시스템만 테스트
-python college_rag_system.py
+python src/college_rag_system.py --test
+
+# 벡터 DB 초기화
+python src/college_rag_system.py --init-db
 
 # 특정 구성 요소 테스트
-python -c "from college_rag_system import CollegeRAGSystem; print('OK')"
+python -c "from src.college_rag_system import CollegeRAGSystem; print('OK')"
 ```
 
 ## 📊 성능 및 제한사항
@@ -149,16 +158,17 @@ python -c "from college_rag_system import CollegeRAGSystem; print('OK')"
 - **정확도**: 대학 안내 자료 기반 약 85-90%
 
 ### 제한사항
-- **데이터**: 현재 5개 PDF 샘플로 제한 (MVP)
+- **데이터**: 현재 64개 PDF 파일 처리 중
 - **언어**: 한국어 전용
 - **OCR**: 이미지 품질에 따른 정확도 편차
 - **API**: OpenAI API 사용량에 따른 비용 발생
+- **검색**: Hybrid 검색으로 향상된 성능
 
 ## 🔄 업데이트 계획
 
-### Phase 2: 고도화 (계획)
-- **LangGraph**: 복합 질의 처리 워크플로우
-- **LangSmith**: 성능 모니터링 및 평가
+### Phase 2: 고도화 (완료)
+- **아키텍처 리팩토링**: 모듈 분리 및 재구조화
+- **Hybrid Retriever**: Dense + Sparse 검색 통합
 - **데이터 확장**: 전체 64개 PDF 파일 처리
 - **성능 최적화**: 응답 속도 및 정확도 개선
 
@@ -197,5 +207,5 @@ python -c "from college_rag_system import CollegeRAGSystem; print('OK')"
 ---
 
 **개발자**: kwangsiklee  
-**버전**: v0.1.0 (MVP)  
-**최종 업데이트**: 2025-09-07
+**버전**: v0.2.1 (Phase 2 완료)  
+**최종 업데이트**: 2025-09-10
