@@ -27,6 +27,15 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
 
 ### 🔍 LLM
 - **RAG_Study/**: RAG(검색증강생성) 연구 ([README.md](./RAG_Study/README.md)) 
+
+    - retriver 평가 도구 샘플 코드 [K-RAG 패키지](./RAG_Study/RAG_Evaluator/krag_eval.ipynb) 
+    Hit Rate, MRR, Recall@k, Precision@k, mAP@k, NDCG@k 계산  
+    출처 : https://github.com/tsdata/rag_advanced
+
+    - Cross Endocer 이용한 highlight 답변 [K-RAG 패키지](./RAG_Study/RAG_Evaluator/RAG_retrieval_evaluation.ipynb)  
+    앙상블 검색기 & Re-Rank  
+    출처 : https://github.com/tsdata/rag_advanced
+
 - **Fine Tuning/**: Fine Tuning 연구
 
 ### VLM
