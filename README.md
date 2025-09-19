@@ -48,11 +48,22 @@ AI/ML 학습을 위한 개인 스터디 저장소입니다. 기초 Python부터 
     Qwen/Qwen2.5-3B-Instruct 모델을 LoRA 기반 fine-tuning  
     fine_tuned model : Adapter layer 저장. 
 
+### [Multi Modal](lectMultiModal/)
+- [CNN image 필기 숫자 인식](lectMultiModal/01_cnn_ex1.ipynb) 
+- [CNN image 분류](lectMultiModal/02_cnn_ex2.ipynb)  
+- [ResNet50 모델 이용 이미지 분류](lectMultiModal/04_멀티모달_ex1.ipynb) 
+- [CLIP 모델 & BLIP 모델 이용](lectMultiModal/05_멀티모달_ex2.ipynb)  
+OpenAI의 CLIP 모델 중 "ViT-B/32",
+CLIP(Contrastive Language-Image Pre-training)   
+BLIP(Bootstrapped Language-Image Pretraining) 이미지 캡셔닝 모델
+- [CLIP & BLIP & LangChain 연동](lectMultiModal/07_멀티모달_ex4.ipynb)  
+
+
 ### [Fine Tuning](lectFineTuning/)
 - [기본 fine-turing](lectFineTuning/01_fine_tun_ex1.ipynb) 
 - [Lora-PEFT fine-turing](lectFineTuning/03_fine_tun_ex3.ipynb) 
 - [CNN 감정분석 모델 생성](lectFineTuning/04_fine_tun_ex4.ipynb) 
-- [CNN 감정분석 모델 생성](lectFineTuning/07_fine_tun_ex7.ipynb) 
+- [kogpt2-base-v2 모델 fine-tuning](lectFineTuning/07_fine_tun_ex7.ipynb) 
 
 ### [LangGraph](lectLangGraph/)
 
@@ -167,6 +178,9 @@ react agent : 독립실행 가능. langGraph에서 sub grpah의 형태로 구성
 
 - [Chunking](lectLangChain/05_langchain_chunking.ipynb) - SemanticChunker...  
 
+
+#### 참고 : 문서 정보 추출 도구
+ - [Docling](https://docling-project.github.io/docling/) - convert PDFs and DocX into easy-to-use Markdown and JSON 
 
 ### OpenAI ChatGPT 활용 
 
