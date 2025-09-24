@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예제 1: 객체를 JSON으로</title>
+    <style>
+        body { font-family: sans-serif; }
+        .box { padding: 15px; border: 1px solid #ccc; border-radius: 5px; margin-top: 10px; background-color: #f5f5f5; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>객체를 JSON 문자열로 변환하기</h1>
+    
+    <h2>1. 자바스크립트 객체</h2>
+    <div class="box"><pre id="object-output"></pre></div>
+
+    <h2>2. JSON 문자열 (JSON.stringify)</h2>
+    <div class="box"><pre id="json-output"></pre></div>
+
+    <script>
+        // 학생 정보를 담은 자바스크립트 객체
+        const student = {
+            id: 2025001,
+            name: "홍길동",
+            major: "컴퓨터공학",
+            isEnrolled: true,
+            courses: ["자료구조", "알고리즘", "네트워크"]
+        };
+
+        // 객체를 그대로 출력 (브라우저가 보기 좋게 표시)
+        document.getElementById('object-output').textContent = "객체 내용:\n" + JSON.stringify(student, null, 2);
+
+        // 객체를 JSON 문자열로 변환
+        const jsonString = JSON.stringify(student, null, 2); // null, 2는 예쁘게 들여쓰기 하기 위함
+
+        // JSON 문자열 출력
+        document.getElementById('json-output').textContent = jsonString;
+
+        console.log("객체 타입:", typeof student);
+        console.log("JSON 문자열 타입:", typeof jsonString);
+    </script>
+</body>
+</html>

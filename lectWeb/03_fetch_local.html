@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예제 3: 로컬 JSON 파일 가져오기</title>
+</head>
+<body>
+    <h1>로컬 user.json 파일 데이터</h1>
+    <div id="user-info">데이터를 불러오는 중...</div>
+    
+    <script>
+        // user.json 파일에 네트워크 요청을 보냄
+        fetch('user.json')
+            .then(response => {
+                // 서버가 보낸 응답을 JSON 형태로 파싱
+                return response.json();
+            })
+            .then(data => {
+                // 파싱된 데이터를 화면에 표시
+                console.log(data); // 콘솔에서 객체 확인
+                const userInfoDiv = document.getElementById('user-info');
+                userInfoDiv.innerHTML = `
+                    <p><strong>이름:</strong> ${data.name}</p>
+                    <p><strong>나이:</strong> ${data.age}</p>
+                    <p><strong>이메일:</strong> ${data.email}</p>
+                `;
+            })
+            .catch(error => {
+                // 에러 처리
+                console.error('파일을 가져오는 데 문제가 발생했습니다:', error);
+                document.getElementById('user-info').textContent = "데이터 로딩 실패!";
+            });
+    </script>
+</body>
+</html>

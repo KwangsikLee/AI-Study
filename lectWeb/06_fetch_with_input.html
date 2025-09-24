@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예제 6: 사용자 입력으로 API 호출</title>
+    <style>
+        .post { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .post h2 { margin-top: 0; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>게시글 검색기</h1>
+    <input type="number" id="postIdInput" placeholder="게시글 번호 입력 (1~100)" min="1">
+    <button id="search-btn">검색</button>
+
+    <div id="result-area"></div>
+
+    <script>
+        const postIdInput = document.getElementById('postIdInput');
+        const searchBtn = document.getElementById('search-btn');
+        const resultArea = document.getElementById('result-area');
+
+        function fetchPost() {
+            const postId = postIdInput.value;
+            
+            if (!postId) {
+                alert('게시글 번호를 입력하세요.');
+                return;
+            }
+
+            resultArea.innerHTML = '<p>게시글을 불러오는 중...</p>';
+            const API_URL = `https://jsonplaceholder.typicode.com/posts/${postId}`;
+
+            fetch(API_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        // 404 Not Found 같은 에러 처리
+                        throw new Error('게시글을 찾을 수 없습니다. 상태 코드: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(postData => {
+                    resultArea.innerHTML = `
+                        <div class="post">
+                            <h2>${postData.title}</h2>
+                            <p>${postData.body}</p>
+                            <small>게시글 ID: ${postData.id}, 유저 ID: ${postData.userId}</small>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('에러 발생:', error);
+                    resultArea.innerHTML = `<p class="error">${error.message}</p>`;
+                });
+        }
+
+        searchBtn.addEventListener('click', fetchPost);
+        postIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                fetchPost();
+            }
+        });
+    </script>
+</body>
+</html>

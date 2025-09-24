@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예제 11: 상품 필터링 (수정본)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 900px; margin: auto; }
+        #filter-buttons { margin: 20px 0; }
+        #filter-buttons button { margin-right: 5px; padding: 10px; cursor: pointer; border: 1px solid #ccc; }
+        #product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .product-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+        .product-card h3 { margin-top: 0; }
+        .category { font-style: italic; color: #777; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>상품 목록</h1>
+    <div id="filter-buttons">
+        <button onclick="handleFilterClick('all')">전체</button>
+        <button onclick="handleFilterClick('electronics')">전자기기</button>
+        <button onclick="handleFilterClick('books')">도서</button>
+    </div>
+    <div id="product-grid"></div>
+
+    <script>
+        // --- 가짜 상품 데이터 (JSON 배열) ---
+        const products = [
+            { id: 1, name: '노트북', category: 'electronics', price: 1500000 },
+            { id: 2, name: '자바스크립트 완벽 가이드', category: 'books', price: 45000 },
+            { id: 3, name: '스마트폰', category: 'electronics', price: 1200000 },
+            { id: 4, name: '클린 코드', category: 'books', price: 32000 },
+            { id: 5, name: '무선 이어폰', category: 'electronics', price: 250000 }
+        ];
+        
+        const productGrid = document.getElementById('product-grid');
+
+        // --- API 호출을 흉내내는 함수 ---
+        function fetchProducts(category) {
+            console.log(`API 요청 시뮬레이션: /products?category=${category}`);
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    if (category === 'all') {
+                        resolve(products);
+                    } else {
+                        const filteredProducts = products.filter(p => p.category === category);
+                        resolve(filteredProducts);
+                    }
+                }, 100);
+            });
+        }
+        
+        // --- 상품 데이터를 화면에 렌더링하는 함수 ---
+        function renderProducts(productList) {
+            productGrid.innerHTML = '';
+            productList.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <h3>${product.name}</h3>
+                    <p class="category">${product.category}</p>
+                    <p>가격: ${product.price.toLocaleString()}원</p>
+                `;
+                productGrid.appendChild(card);
+            });
+        }
+        
+        // 🟢 추가된 부분 2: 버튼 클릭을 처리하는 핸들러 함수 ---
+        // 이 함수가 fetch와 render를 연결해주는 역할을 합니다.
+        async function handleFilterClick(category) {
+            const filteredProducts = await fetchProducts(category); // fetchProducts가 완료되길 기다렸다가
+            renderProducts(filteredProducts);                      // 그 결과로 화면을 다시 그립니다.
+        }
+
+        // 초기 로드: 모든 상품을 보여줌
+        handleFilterClick('all');
+    </script>
+</body>
+</html>

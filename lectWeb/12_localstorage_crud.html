@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예제 12: 로컬스토리지 메모장</title>
+    <style>
+        body { font-family: sans-serif; }
+        .container { max-width: 600px; margin: auto; }
+        textarea { width: 100%; height: 60px; }
+        #memo-list { list-style: none; padding: 0; }
+        .memo-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #eee; margin-bottom: 5px; }
+        .delete-btn { background: #ff4d4d; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LocalStorage 메모장</h1>
+        <textarea id="memo-input" placeholder="메모를 입력하세요..."></textarea>
+        <button id="add-btn">메모 추가 (POST)</button>
+        <ul id="memo-list"></ul>
+    </div>
+
+    <script>
+        const memoInput = document.getElementById('memo-input');
+        const addBtn = document.getElementById('add-btn');
+        const memoList = document.getElementById('memo-list');
+        const STORAGE_KEY = 'memos';
+
+        // --- API 모듈 시뮬레이션 ---
+        const memoApi = {
+            // GET /memos
+            getMemos: function() {
+                const memos = localStorage.getItem(STORAGE_KEY);
+                // LocalStorage는 문자열만 저장하므로 JSON.parse로 객체화
+                return memos ? JSON.parse(memos) : [];
+            },
+            // POST /memos
+            saveMemo: function(newMemoContent) {
+                const memos = this.getMemos();
+                const newMemo = {
+                    id: Date.now(), // 유니크한 ID 생성
+                    content: newMemoContent
+                };
+                memos.push(newMemo);
+                // 객체를 JSON 문자열로 변환하여 LocalStorage에 저장
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(memos));
+                return newMemo;
+            },
+            // DELETE /memos/:id
+            deleteMemo: function(memoId) {
+                let memos = this.getMemos();
+                memos = memos.filter(memo => memo.id !== memoId);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(memos));
+            }
+        };
+
+        // --- UI 렌더링 로직 ---
+        function renderMemos() {
+            memoList.innerHTML = '';
+            const memos = memoApi.getMemos(); // GET 요청
+            memos.forEach(memo => {
+                const li = document.createElement('li');
+                li.className = 'memo-item';
+                li.innerHTML = `
+                    <span>${memo.content}</span>
+                    <button class="delete-btn" data-id="${memo.id}">삭제</button>
+                `;
+                memoList.appendChild(li);
+            });
+        }
+        
+        // 메모 추가 이벤트
+        addBtn.addEventListener('click', () => {
+            if (memoInput.value.trim() === '') return;
+            memoApi.saveMemo(memoInput.value); // POST 요청
+            memoInput.value = '';
+            renderMemos(); // 목록 새로고침
+        });
+
+        // 메모 삭제 이벤트 (이벤트 위임)
+        memoList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-btn')) {
+                const memoId = Number(e.target.dataset.id);
+                memoApi.deleteMemo(memoId); // DELETE 요청
+                renderMemos(); // 목록 새로고침
+            }
+        });
+
+        // 초기 로드
+        renderMemos();
+    </script>
+</body>
+</html>

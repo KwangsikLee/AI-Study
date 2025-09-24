@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예제 4: Public API 데이터 가져오기</title>
+    <style>
+        .post { border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+        .post h2 { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>JSONPlaceholder API - 게시글 1번</h1>
+    <div id="post" class="post">로딩 중...</div>
+
+    <script>
+        const API_URL = 'https://jsonplaceholder.typicode.com/posts/1';
+
+        fetch(API_URL)
+            .then(response => response.json())
+            .then(postData => {
+                console.log(postData);
+                const postDiv = document.getElementById('post');
+                postDiv.innerHTML = `
+                    <h2>${postData.title}</h2>
+                    <p>${postData.body}</p>
+                    <small>User ID: ${postData.userId}</small>
+                `;
+            })
+            .catch(error => {
+                console.error('API 호출 중 에러 발생:', error);
+                document.getElementById('post').textContent = "게시글을 불러올 수 없습니다.";
+            });
+    </script>
+</body>
+</html>

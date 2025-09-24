@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예제 2: JSON을 객체로</title>
+    <style>
+        body { font-family: sans-serif; }
+        .box { padding: 15px; border: 1px solid #ccc; border-radius: 5px; margin-top: 10px; background-color: #eef; }
+    </style>
+</head>
+<body>
+    <h1>JSON 문자열을 객체로 변환하기 (JSON.parse)</h1>
+    
+    <h2>1. 서버로부터 받은 JSON 문자열</h2>
+    <div class="box"><pre id="json-input"></pre></div>
+
+    <h2>2. 자바스크립트 객체로 변환된 후, 데이터 접근</h2>
+    <div class="box" id="result-output"></div>
+
+    <script>
+        // 서버로부터 받았다고 가정한 JSON 형식의 문자열
+        const jsonString = `{
+            "id": 2025002,
+            "name": "성춘향",
+            "major": "경영학과",
+            "grade": 2
+        }`;
+        
+        document.getElementById('json-input').textContent = jsonString;
+
+        // JSON 문자열을 자바스크립트 객체로 변환
+        const studentObject = JSON.parse(jsonString);
+
+        // 이제 객체처럼 점(.)을 찍어 데이터에 접근할 수 있습니다.
+        const resultOutput = document.getElementById('result-output');
+        resultOutput.innerHTML = `
+            <p><strong>이름:</strong> ${studentObject.name}</p>
+            <p><strong>전공:</strong> ${studentObject.major}</p>
+            <p><strong>학년:</strong> ${studentObject.grade}학년</p>
+        `;
+
+        console.log("변환된 객체:", studentObject);
+        console.log("객체의 이름 속성:", studentObject.name);
+    </script>
+</body>
+</html>

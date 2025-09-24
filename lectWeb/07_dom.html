@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>예제 7: DOM 조작 (화면 출력)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; line-height: 1.6; padding: 24px; }
+    .highlight { background-color: yellow; font-weight: bold; }
+    #main-title { transition: color .25s ease, background-color .25s ease; }
+    .panel { margin-top: 16px; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 10px; max-width: 640px; background: #fafafa; }
+    .row { display: grid; grid-template-columns: 120px 1fr; gap: 10px; margin: 6px 0; }
+    code { background:#f3f4f6; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1 id="main-title">DOM 조작 예제</h1>
+  <p>아래 버튼을 눌러보세요.</p>
+
+  <!-- 기존 onclick 유지 -->
+  <button onclick="changeText()">텍스트 변경</button>
+  <button onclick="changeStyle()">스타일 변경</button>
+  <button onclick="reset()">초기화</button>
+
+  <!-- 화면에 결과를 보여주는 패널 -->
+  <div class="panel" aria-live="polite">
+    <div class="row"><strong>현재 텍스트</strong> <span id="status-text"><code>DOM 조작 예제</code></span></div>
+    <div class="row"><strong>텍스트 색상</strong> <span id="status-color"><code>black</code></span></div>
+    <div class="row"><strong>하이라이트</strong> <span id="status-hi"><code>false</code></span></div>
+  </div>
+
+  <script>
+    const titleElement = document.getElementById("main-title");
+    const stText  = document.getElementById("status-text");
+    const stColor = document.getElementById("status-color");
+    const stHi    = document.getElementById("status-hi");
+
+    function renderStatus() {
+      // 현재 텍스트
+      stText.innerHTML = `<code>${titleElement.innerText}</code>`;
+      // 현재 색상 (계산된 스타일)
+      const color = getComputedStyle(titleElement).color;
+      stColor.innerHTML = `<code>${color}</code>`;
+      // 하이라이트 클래스 여부
+      const isHi = titleElement.classList.contains("highlight");
+      stHi.innerHTML = `<code>${isHi}</code>`;
+    }
+
+    function changeText() {
+      titleElement.innerText = "텍스트가 변경되었습니다!";
+      renderStatus();
+    }
+
+    function changeStyle() {
+      titleElement.style.color = "blue";
+      titleElement.classList.add("highlight");
+      renderStatus();
+    }
+
+    function reset() {
+      titleElement.innerText = "DOM 조작 예제";
+      titleElement.style.color = "black";
+      titleElement.classList.remove("highlight");
+      renderStatus();
+    }
+
+    // 최초 상태 표시
+    renderStatus();
+  </script>
+</body>
+</html>

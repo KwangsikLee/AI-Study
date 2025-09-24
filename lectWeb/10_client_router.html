@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예제 10: 클라이언트 사이드 라우팅</title>
+    <style>
+        body { font-family: sans-serif; }
+        nav { background: #333; padding: 10px; }
+        nav a { color: white; text-decoration: none; margin-right: 15px; }
+        #content { padding: 20px; }
+        .user-card { border: 1px solid #ccc; padding: 10px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="#/">홈</a>
+        <a href="#/users">모든 사용자 보기</a>
+        <a href="#/users/1">사용자 1번 보기</a>
+        <a href="#/users/2">사용자 2번 보기</a>
+    </nav>
+    <div id="content"></div>
+
+    <script>
+        // --- 가짜 데이터베이스 (Mock DB) ---
+        const db = {
+            users: [
+                { id: 1, name: '홍길동', email: 'hong@example.com', posts: ['첫 번째 글', '두 번째 글'] },
+                { id: 2, name: '이순신', email: 'lee@example.com', posts: ['난중일기'] },
+                { id: 3, name: '유관순', email: 'yoo@example.com', posts: ['독립 선언문'] }
+            ]
+        };
+
+        const contentDiv = document.getElementById('content');
+
+        // --- 라우터: URL 해쉬 변경을 감지하고 그에 맞는 화면을 렌더링 ---
+        function router() {
+            const path = window.location.hash.slice(1) || '/'; // # 제거
+            contentDiv.innerHTML = ''; // 이전 내용 비우기
+
+            if (path === '/') {
+                contentDiv.innerHTML = '<h1>홈</h1><p>내비게이션을 클릭하여 데이터를 확인하세요.</p>';
+            } else if (path === '/users') {
+                // GET /users 와 동일한 효과
+                contentDiv.innerHTML = '<h2>모든 사용자 목록</h2>';
+                db.users.forEach(user => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'user-card';
+                    userDiv.innerHTML = `<strong>${user.name}</strong> (${user.email})`;
+                    contentDiv.appendChild(userDiv);
+                });
+            } else if (path.startsWith('/users/')) {
+                // GET /users/:id 와 동일한 효과
+                const userId = parseInt(path.split('/')[2]);
+                const user = db.users.find(u => u.id === userId);
+
+                if (user) {
+                    contentDiv.innerHTML = `
+                        <h2>사용자 상세 정보</h2>
+                        <p><strong>ID:</strong> ${user.id}</p>
+                        <p><strong>이름:</strong> ${user.name}</p>
+                        <p><strong>이메일:</strong> ${user.email}</p>
+                        <h3>작성한 글</h3>
+                        <ul>${user.posts.map(post => `<li>${post}</li>`).join('')}</ul>
+                    `;
+                } else {
+                    contentDiv.innerHTML = '<h2>사용자를 찾을 수 없습니다.</h2>';
+                }
+            }
+        }
+
+        // URL의 해쉬가 변경될 때마다 router 함수 실행
+        window.addEventListener('hashchange', router);
+
+        // 페이지가 처음 로드될 때도 router 함수 실행
+        window.addEventListener('load', router);
+    </script>
+</body>
+</html>

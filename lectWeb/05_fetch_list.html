@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예제 5: 리스트 데이터 가져오기</title>
+</head>
+<body>
+    <h1>게시글 목록 (상위 10개)</h1>
+    <ul id="post-list"><li>로딩 중...</li></ul>
+
+    <script>
+        // _limit=10 쿼리 파라미터로 10개만 가져오기
+        const API_URL = 'https://jsonplaceholder.typicode.com/posts?_limit=10';
+
+        fetch(API_URL)
+            .then(response => response.json())
+            .then(posts => {
+                const postList = document.getElementById('post-list');
+                postList.innerHTML = ''; // 기존 '로딩 중...' 메시지 삭제
+
+                // forEach 반복문으로 각 게시글을 li 태그로 만들어 추가
+                posts.forEach(post => {
+                    const li = document.createElement('li');
+                    li.textContent = `${post.id}. ${post.title}`;
+                    postList.appendChild(li);
+                });
+            })
+            .catch(error => {
+                console.error('에러:', error);
+                document.getElementById('post-list').innerHTML = '<li>목록을 불러오지 못했습니다.</li>';
+            });
+    </script>
+</body>
+</html>
